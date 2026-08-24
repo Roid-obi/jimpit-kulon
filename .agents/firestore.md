@@ -15,7 +15,7 @@ Do not introduce another database.
 ```text
 name: string
 email: string
-role: "admin" | "petugas" | "bendahara"
+role: "admin" | "petugas"
 isActive: boolean
 emailVerified: boolean
 createdAt: Timestamp

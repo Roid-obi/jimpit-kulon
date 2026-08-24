@@ -26,7 +26,6 @@ Supported roles:
 
 - admin
 - petugas
-- bendahara
 
 All authenticated and verified users should be able to view the financial dashboard.
 
@@ -132,7 +131,6 @@ Use these terms consistently:
 - Pengeluaran
 - Saldo Dana Jimpitan
 - Petugas
-- Bendahara
 - Admin
 
 Do not use "Minggu 1", "Minggu 2", etc. for payment periods.

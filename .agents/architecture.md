@@ -57,7 +57,6 @@ Roles:
 
 - admin
 - petugas
-- bendahara
 
 ### houses
 

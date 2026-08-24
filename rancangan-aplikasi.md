@@ -256,9 +256,6 @@ Laporan dapat diunduh dalam format PDF maupun Excel.
 * Mencari rumah
 * Melakukan pembayaran
 * Melihat histori pembayaran
-
-### Bendahara
-
 * Melihat seluruh pemasukan
 * Mencatat pengeluaran dana jimpitan
 * Melihat saldo
