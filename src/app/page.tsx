@@ -1,63 +1,59 @@
+"use client";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [expand, setExpand] = useState(false);
+
+  useEffect(() => {
+    // Memberikan sedikit jeda sebelum animasi dimulai agar lebih terasa
+    const timer = setTimeout(() => setExpand(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    <div className="min-h-screen bg-primary flex flex-col items-center justify-center overflow-hidden relative">
+      
+      {/* Logo Awal Sebelum Transisi (Splash) */}
+      <div className={`absolute z-0 flex flex-col items-center gap-4 transition-opacity duration-700 ${expand ? 'opacity-0 delay-300' : 'opacity-100'}`}>
+         <Image
+            src="/jimpit-kulon-logo.svg"
+            alt="Jimpit Kulon Logo"
+            width={100}
+            height={100}
+            priority
+            className="animate-pulse"
+          />
+      </div>
+
+      {/* Main Content yang membesar dari tengah */}
+      <main 
+        className="absolute inset-0 bg-background z-10 flex flex-col items-center justify-center gap-8 p-8 text-center transition-all duration-[1200ms] ease-in-out"
+        style={{
+          clipPath: expand ? 'circle(150% at 50% 50%)' : 'circle(0% at 50% 50%)'
+        }}
+      >
+         <Image
+            src="/jimpit-kulon-logo.svg"
+            alt="Jimpit Kulon Logo"
+            width={140}
+            height={140}
+            priority
+          />
+        <h1 className="text-4xl md:text-5xl font-bold text-heading">
+          Jimpit Kulon
+        </h1>
+        <p className="text-lg max-w-md text-foreground/80">
+          Sistem pengelolaan jimpitan warga yang transparan, aman, dan mudah digunakan.
+        </p>
+        
+        <div className="flex gap-4 mt-8">
+          <button className="px-8 py-3 rounded-full bg-primary text-foreground font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer">
+            Mulai Sekarang
+          </button>
+          <button className="px-8 py-3 rounded-full bg-secondary text-foreground font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer">
+            Pelajari
+          </button>
         </div>
       </main>
     </div>
