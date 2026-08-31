@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/jimpit-kulon-logo.svg" alt="Jimpit Kulon Logo" width="150" />
+  <h1>Jimpit Kulon</h1>
+  <p>Aplikasi administrasi digital untuk pengelolaan jimpitan secara terstruktur dan transparan.</p>
+</div>
 
-## Getting Started
+---
 
-First, run the development server:
+## 📖 Tentang Jimpit Kulon
+
+**Jimpit Kulon** adalah aplikasi administrasi digital untuk pengelolaan jimpitan di satu RT dengan target sekitar 45 rumah. Aplikasi ini mempermudah pencatatan pembayaran jimpitan, pemasukan, pengeluaran, serta melacak histori keuangan secara terstruktur dan transparan.
+
+> **Penting:** Jimpit Kulon bukan *payment gateway* dan tidak melayani pembayaran *online* atau terintegrasi dengan e-wallet. Pembayaran jimpitan tetap dilakukan secara tunai kepada petugas. Aplikasi sepenuhnya digunakan untuk **mencatat transaksi yang terjadi di lapangan**.
+
+## ✨ Fitur Utama
+
+- **Sistem Jimpitan Terstruktur:** Mencatat pembayaran berdasarkan *Periode Jimpitan* (satu periode terdiri dari 7 hari, dengan penarikan setiap hari Sabtu).
+- **Scan QR Code:** Kemudahan memindai QR Code rumah untuk langsung membuka halaman detail rumah tersebut (berfungsi sebagai identitas rumah/shortcut).
+- **Dashboard Interaktif:** Ringkasan keuangan seperti saldo, pemasukan, pengeluaran, serta status penarikan periode berjalan.
+- **Pencatatan Keuangan Lengkap:** Kemampuan mencatat arus dana tunai dari pembayaran jimpitan, uang donasi (kelebihan pembayaran warga), hingga pengeluaran RT.
+- **Laporan Otomatis:** Fitur untuk melihat laporan pembayaran jimpitan per rumah dan laporan keuangan keseluruhan pada rentang waktu tertentu.
+- **Role Pengguna (Admin & Petugas):** 
+  - **Admin:** Memiliki seluruh akses termasuk manajemen pengguna, rumah, dan pengaturan aplikasi.
+  - **Petugas:** Memiliki akses penuh untuk fungsi operasional dan penarikan jimpitan di lapangan tanpa akses ke manajemen data master.
+
+## 🛠 Tech Stack
+
+Seluruh antarmuka aplikasi dikembangkan dengan pendekatan **mobile-first** untuk memberikan pengalaman terbaik di *smartphone* petugas.
+
+### Frontend
+- **Framework Utama:** [Next.js](https://nextjs.org/)
+- **Bahasa:** [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Icon:** [Lucide React](https://lucide.dev/)
+- **Form Management:** [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
+
+### Backend & Database
+- **Autentikasi:** [Firebase Authentication](https://firebase.google.com/docs/auth)
+- **Database Utama:** [Firebase Firestore](https://firebase.google.com/docs/firestore) (Satu-satunya database yang digunakan)
+- **Keamanan:** Firestore Security Rules
+
+### Development Tools
+- **Package Manager & Runtime:** [Bun](https://bun.sh/)
+- **Formatting & Linting:** [Biome](https://biomejs.dev/)
+- **Deployment:** [Vercel](https://vercel.com/)
+
+---
+
+## 🚀 Getting Started
+
+Panduan untuk menjalankan project ini di komputer lokal:
+
+### 1. Prasyarat
+Pastikan Anda sudah menginstal [Bun](https://bun.sh/) di sistem Anda.
+
+### 2. Instalasi
+Clone repository dan install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone <repository-url>
+cd jimpit-kulon
+
+# Instalasi menggunakan Bun
+bun install
+```
+
+### 3. Konfigurasi Environment
+Buat file `.env.local` berdasarkan konfigurasi Firebase Anda:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+```
+
+### 4. Menjalankan Server Development
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Buka [http://localhost:3000](http://localhost:3000) pada browser Anda untuk melihat aplikasi berjalan.
