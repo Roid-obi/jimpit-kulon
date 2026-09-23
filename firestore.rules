@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Functions for authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin' && getUserData().isActive == true;
+    }
+    
+    function isPetugas() {
+      return isAuthenticated() && (getUserData().role == 'petugas' || getUserData().role == 'admin') && getUserData().isActive == true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Houses Collection
+    match /houses/{houseId} {
+      allow read: if isPetugas(); // admin and petugas can read
+      allow write: if isAdmin();
+    }
+
+    // Periods Collection
+    match /periods/{periodId} {
+      allow read: if isPetugas();
+      allow write: if isAdmin();
+    }
+
+    // Payments Collection
+    match /payments/{paymentId} {
+      allow read: if isPetugas();
+      allow create: if isPetugas();
+      allow update, delete: if isAdmin(); // only admin can correct/delete payments
+    }
+
+    // Financial Transactions Collection
+    match /financial_transactions/{transactionId} {
+      allow read: if isPetugas();
+      allow create: if isPetugas();
+      allow update, delete: if isAdmin(); // only admin can correct/delete transactions
+    }
+
+    // Settings Collection
+    match /settings/{document=**} {
+      allow read: if isPetugas();
+      allow write: if isAdmin();
+    }
+  }
+}

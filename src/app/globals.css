@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F5F5F5;
+  --background: #f5f5f5;
   --foreground: #303841;
   --heading: #000000;
-  --primary: #FFF200;
-  --secondary: #D6E6F2;
+  --primary: #fff200;
+  --secondary: #d6e6f2;
 }
 
 @theme inline {
@@ -19,9 +19,9 @@
 
 .dark {
   --background: #1e2227; /* Dark background with slight blueish tint */
-  --foreground: #F5F5F5;
-  --heading: #FFFFFF;
-  --primary: #FFF200; /* Yellow accent kept for dark mode */
+  --foreground: #f5f5f5;
+  --heading: #ffffff;
+  --primary: #fff200; /* Yellow accent kept for dark mode */
   --secondary: #303841; /* Dark gray from original palette as secondary surface */
 }
 
