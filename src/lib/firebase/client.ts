@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 
-import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
+import { type Analytics, getAnalytics, isSupported } from "firebase/analytics";
 import { getApp, getApps, initializeApp } from "firebase/app";
 
 // TODO: Add SDKs for Firebase products that you want to use

@@ -1,9 +1,12 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [expand, setExpand] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     // Memberikan sedikit jeda sebelum animasi dimulai agar lebih terasa
@@ -54,13 +57,15 @@ export default function Home() {
         <div className="flex gap-4 mt-8">
           <button
             type="button"
-            className="px-8 py-3 rounded-full bg-primary text-foreground font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+            onClick={() => router.push('/login')}
+            className="px-8 py-3 rounded-full bg-primary text-[#000000] font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
           >
             Mulai Sekarang
           </button>
           <button
             type="button"
-            className="px-8 py-3 rounded-full bg-secondary text-foreground font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+            onClick={() => router.push('/login')}
+            className="px-8 py-3 rounded-full bg-secondary text-[#f7f7f7] font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
           >
             Pelajari
           </button>

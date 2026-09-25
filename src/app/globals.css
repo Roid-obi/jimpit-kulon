@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f5;
-  --foreground: #303841;
+  --background: #f7f7f7;
+  --foreground: #000000;
   --heading: #000000;
-  --primary: #fff200;
-  --secondary: #d6e6f2;
+  --primary: #f5b553;
+  --secondary: #854836;
 }
 
 @theme inline {
@@ -18,11 +18,11 @@
 }
 
 .dark {
-  --background: #1e2227; /* Dark background with slight blueish tint */
-  --foreground: #f5f5f5;
-  --heading: #ffffff;
-  --primary: #fff200; /* Yellow accent kept for dark mode */
-  --secondary: #303841; /* Dark gray from original palette as secondary surface */
+  --background: #000000;
+  --foreground: #f7f7f7;
+  --heading: #f7f7f7;
+  --primary: #f5b553;
+  --secondary: #854836;
 }
 
 body {
