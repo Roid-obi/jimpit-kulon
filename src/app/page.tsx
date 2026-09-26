@@ -1,76 +1,73 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [expand, setExpand] = useState(false);
-
   const router = useRouter();
 
-  useEffect(() => {
-    // Memberikan sedikit jeda sebelum animasi dimulai agar lebih terasa
-    const timer = setTimeout(() => setExpand(true), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-primary flex flex-col items-center justify-center overflow-hidden relative">
-      {/* Logo Awal Sebelum Transisi (Splash) */}
-      <div
-        className={`absolute z-0 flex flex-col items-center gap-4 transition-opacity duration-700 ${expand ? "opacity-0 delay-300" : "opacity-100"}`}
-      >
-        <Image
-          src="/jimpit-kulon-logo.svg"
-          alt="Jimpit Kulon Logo"
-          width={100}
-          height={100}
-          priority
-          className="animate-pulse"
-        />
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+        {/* Logo */}
+        <div className="mb-8">
+          <Image
+            src="/jimpit-kulon-logo.png"
+            alt="Jimpit Kulon"
+            width={180}
+            height={72}
+            className="object-contain mx-auto"
+            priority
+          />
+        </div>
 
-      {/* Main Content yang membesar dari tengah */}
-      <main
-        className="absolute inset-0 bg-background z-10 flex flex-col items-center justify-center gap-8 p-8 text-center transition-all duration-[1200ms] ease-in-out"
-        style={{
-          clipPath: expand
-            ? "circle(150% at 50% 50%)"
-            : "circle(0% at 50% 50%)",
-        }}
-      >
-        <Image
-          src="/jimpit-kulon-logo.svg"
-          alt="Jimpit Kulon Logo"
-          width={140}
-          height={140}
-          priority
-        />
-        <h1 className="text-4xl md:text-5xl font-bold text-heading">
-          Jimpit Kulon
-        </h1>
-        <p className="text-lg max-w-md text-foreground/80">
-          Sistem pengelolaan jimpitan warga yang transparan, aman, dan mudah
-          digunakan.
-        </p>
+        {/* Tagline */}
+        <div className="mb-10 space-y-3">
+          <h1 className="text-3xl font-bold text-foreground leading-tight">
+            Kelola Jimpitan Warga
+            <br />
+            <span className="text-primary">Lebih Mudah & Transparan</span>
+          </h1>
+          <p className="text-base text-foreground/60 max-w-xs mx-auto leading-relaxed">
+            Pencatatan jimpitan digital untuk RT yang lebih rapi, transparan, dan mudah diakses.
+          </p>
+        </div>
 
-        <div className="flex gap-4 mt-8">
+        {/* Fitur highlights */}
+        <div className="grid grid-cols-3 gap-3 mb-12 w-full max-w-xs">
+          {[
+            { emoji: '📋', label: 'Catat Pembayaran' },
+            { emoji: '💰', label: 'Lacak Keuangan' },
+            { emoji: '📊', label: 'Lihat Laporan' },
+          ].map((f) => (
+            <div key={f.label} className="bg-white rounded-2xl p-3 shadow-sm border border-black/5 flex flex-col items-center gap-1">
+              <span className="text-2xl">{f.emoji}</span>
+              <span className="text-xs text-foreground/60 font-medium text-center leading-tight">{f.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA Buttons */}
+        <div className="w-full max-w-xs space-y-3">
           <button
-            type="button"
             onClick={() => router.push('/login')}
-            className="px-8 py-3 rounded-full bg-primary text-[#000000] font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+            className="w-full py-4 bg-primary text-[#000000] rounded-2xl font-bold text-base shadow-sm active:scale-[0.98]"
           >
-            Mulai Sekarang
+            Masuk ke Aplikasi
           </button>
           <button
-            type="button"
-            onClick={() => router.push('/login')}
-            className="px-8 py-3 rounded-full bg-secondary text-[#f7f7f7] font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+            onClick={() => router.push('/register')}
+            className="w-full py-4 bg-white text-foreground rounded-2xl font-semibold text-base border border-black/10 shadow-sm active:scale-[0.98]"
           >
-            Pelajari
+            Daftar Akun Baru
           </button>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="pb-8 text-center">
+        <p className="text-xs text-foreground/40">Jimpit Kulon &copy; {new Date().getFullYear()}</p>
+      </footer>
     </div>
   );
 }

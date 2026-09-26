@@ -5,7 +5,18 @@
   --foreground: #000000;
   --heading: #000000;
   --primary: #f5b553;
+  --primary-foreground: #000000;
   --secondary: #854836;
+  --secondary-foreground: #f7f7f7;
+  --surface: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --muted: rgba(0, 0, 0, 0.45);
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --warning: #ea580c;
+  --warning-bg: #fff7ed;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
 }
 
 @theme inline {
@@ -13,19 +24,31 @@
   --color-foreground: var(--foreground);
   --color-heading: var(--heading);
   --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
   --font-sans: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
-}
-
-.dark {
-  --background: #000000;
-  --foreground: #f7f7f7;
-  --heading: #f7f7f7;
-  --primary: #f5b553;
-  --secondary: #854836;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Smooth transitions untuk interactive elements */
+* {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, CheckCircle2, AlertCircle, Circle, Home } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Circle, Home, Check } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -220,135 +220,116 @@ export default function HouseDetailPage() {
   const selectedAmount = selectedPeriodIds.length * 3500;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="max-w-lg mx-auto px-4 pb-32 bg-background min-h-screen pt-4">
       {/* Header */}
-      <div className="bg-primary text-[#000000] px-4 py-4 sticky top-0 z-10 shadow-sm flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-1 hover:bg-black/10 rounded-full transition-colors">
-          <ArrowLeft className="w-6 h-6" />
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
         </button>
-        <h1 className="text-lg font-bold">Detail Rumah</h1>
+        <h1 className="text-lg font-bold text-foreground">Detail Rumah</h1>
       </div>
 
-      <div className="p-4 space-y-6 max-w-lg mx-auto">
+      <div className="space-y-4">
         {/* Card Info Rumah */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <div className="bg-white rounded-2xl border border-black/5 p-5">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-secondary text-[#f7f7f7] rounded-full flex items-center justify-center flex-shrink-0">
-              <Home className="w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
+              <Home className="w-7 h-7 text-secondary" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{house.headOfFamily}</h2>
-              <p className="text-gray-500 font-medium">Rumah {house.houseNumber}</p>
-              {house.address && <p className="text-sm text-gray-500 mt-1">{house.address}</p>}
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-foreground">{house.headOfFamily}</h2>
+              <p className="text-sm font-semibold text-foreground/50">Rumah {house.houseNumber}</p>
+              {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
             </div>
           </div>
           
           {arrearPeriods.length > 0 && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <div className="font-semibold text-sm">
+            <div className="mt-4 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3.5 py-2.5">
+              <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+              <p className="text-xs font-bold text-orange-700">
                 {arrearPeriods.length} Periode Tunggakan &bull; Rp {formatRupiah(totalArrearAmount)}
-              </div>
+              </p>
             </div>
           )}
         </div>
 
         {/* Daftar Periode Jimpitan */}
-        <div>
-          <h3 className="text-lg font-bold text-gray-800 mb-3">Daftar Periode</h3>
-          <div className="space-y-3">
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/5 bg-black/[0.02]">
+            <h3 className="font-semibold text-sm text-foreground">Riwayat Periode</h3>
+          </div>
+          <div className="divide-y divide-black/[0.04]">
             {periods.map(period => {
-              const isPaid = isPaymentDone(period.id);
-              const isArrearPeriod = isArrear(period);
-              const isActive = period.status === 'active';
-              const isSelected = selectedPeriodIds.includes(period.id);
-
-              let cardClasses = "flex items-center justify-between p-4 rounded-xl border transition-colors cursor-pointer select-none ";
-              let icon = null;
-              
-              if (isPaid) {
-                cardClasses += "bg-green-50 border-green-200 text-green-800";
-                icon = <CheckCircle2 className="w-6 h-6 text-green-600" />;
-              } else if (isArrearPeriod) {
-                cardClasses += isSelected 
-                  ? "bg-orange-50 border-orange-500 shadow-sm" 
-                  : "bg-white border-orange-300";
-                icon = isSelected ? (
-                  <CheckCircle2 className="w-6 h-6 text-primary fill-primary text-[#000000]" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-orange-400" />
-                );
-              } else if (isActive) {
-                cardClasses += isSelected 
-                  ? "bg-primary/10 border-primary shadow-sm" 
-                  : "bg-white border-gray-200";
-                icon = isSelected ? (
-                  <CheckCircle2 className="w-6 h-6 text-primary fill-primary text-[#000000]" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
-                );
-              } else {
-                 cardClasses += "bg-gray-50 border-gray-200 text-gray-500 opacity-75";
-                 icon = <Circle className="w-6 h-6 text-gray-300" />;
-              }
+              const paid = isPaymentDone(period.id);
+              const arrear = isArrear(period);
+              const active = period.status === 'active';
+              const selected = selectedPeriodIds.includes(period.id);
 
               return (
-                <div 
+                <button 
                   key={period.id} 
-                  className={cardClasses}
-                  onClick={() => togglePeriod(period)}
+                  onClick={() => togglePeriod(period)} 
+                  className="w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-black/5 transition-colors"
                 >
-                  <div>
-                    <div className="font-medium">{formatPeriod(period)}</div>
-                    <div className="text-sm mt-0.5 opacity-80">
-                      {isPaid ? "Lunas" : isArrearPeriod ? "Tunggakan" : isActive ? "Aktif" : "Selesai"}
-                    </div>
+                  {/* Status indicator */}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    paid ? 'bg-green-100' :
+                    arrear ? 'bg-orange-100' :
+                    active ? 'bg-primary/20' :
+                    'bg-black/5'
+                  }`}>
+                    {paid
+                      ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      : arrear
+                      ? <AlertCircle className="w-5 h-5 text-orange-500" />
+                      : active
+                      ? <Circle className="w-5 h-5 text-primary" fill="currentColor" />
+                      : <Circle className="w-5 h-5 text-foreground/20" />
+                    }
                   </div>
+                  
+                  {/* Info periode */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{formatPeriod(period)}</p>
+                    <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-wide ${
+                      paid ? 'text-green-600' :
+                      arrear ? 'text-orange-500' :
+                      active ? 'text-primary' :
+                      'text-foreground/30'
+                    }`}>
+                      {paid ? 'Lunas' : arrear ? 'Tunggakan' : active ? 'Periode Berjalan' : 'Selesai'}
+                    </p>
+                  </div>
+                  
+                  {/* Nominal & checkbox */}
                   <div className="flex items-center gap-3">
-                    {!isPaid && <div className="font-semibold text-gray-900">Rp 3.500</div>}
-                    {icon}
+                    <span className="text-sm font-bold text-foreground">Rp 3.500</span>
+                    {!paid && (
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                        selected ? 'bg-primary border-primary' : 'border-black/20'
+                      }`}>
+                        {selected && <Check className="w-3.5 h-3.5 text-[#000000]" strokeWidth={3} />}
+                      </div>
+                    )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
-
-        {/* Riwayat Pembayaran Terakhir */}
-        {payments.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Riwayat Pembayaran</h3>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              {payments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()).slice(0, 5).map((payment, idx) => {
-                const p = periods.find(per => per.id === payment.periodId);
-                return (
-                  <div key={payment.id} className={`p-4 flex justify-between items-center ${idx !== 0 ? 'border-t border-gray-100' : ''}`}>
-                    <div>
-                      <div className="font-medium text-gray-800">{p ? formatPeriod(p) : 'Periode Tidak Diketahui'}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {payment.paidAt.toDate().toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}
-                      </div>
-                    </div>
-                    <div className="font-semibold text-green-600">Rp 3.500</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Sticky Bottom Bar untuk Pembayaran */}
       {selectedPeriodIds.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 z-20">
+        <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 py-3 bg-white border-t border-black/8 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-500 font-medium">{selectedPeriodIds.length} Periode dipilih</div>
-              <div className="text-lg font-bold text-gray-900">Total: Rp {formatRupiah(selectedAmount)}</div>
+              <p className="text-xs font-semibold text-foreground/50">{selectedPeriodIds.length} periode dipilih</p>
+              <p className="text-base font-bold text-foreground">Rp {formatRupiah(selectedAmount)}</p>
             </div>
             <button 
               onClick={() => setShowPaymentModal(true)}
-              className="bg-primary text-[#000000] font-bold px-6 py-3 rounded-full shadow-md active:scale-95 transition-transform"
+              className="bg-primary text-[#000000] px-6 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
             >
               Bayar Sekarang
             </button>
@@ -358,45 +339,43 @@ export default function HouseDetailPage() {
 
       {/* Modal Pembayaran */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Konfirmasi Pembayaran</h3>
-              <p className="text-gray-500 text-center text-sm mb-6">
-                Pastikan Anda telah menerima uang tunai dari warga.
-              </p>
-              
-              <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Jumlah Periode</span>
-                  <span className="font-bold text-gray-900">{selectedPeriodIds.length}x</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total Bayar</span>
-                  <span className="font-bold text-xl text-primary drop-shadow-sm">Rp {formatRupiah(selectedAmount)}</span>
-                </div>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+            <h3 className="text-xl font-bold text-foreground text-center mb-1">Konfirmasi Pembayaran</h3>
+            <p className="text-foreground/50 font-medium text-center text-sm mb-6">
+              Pastikan Anda telah menerima uang tunai dari warga.
+            </p>
+            
+            <div className="bg-black/5 rounded-2xl p-5 mb-6 border border-black/5">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm font-semibold text-foreground/70">Jumlah Periode</span>
+                <span className="font-bold text-foreground text-base">{selectedPeriodIds.length}x</span>
               </div>
-              
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowPaymentModal(false)}
-                  disabled={isPaying}
-                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl"
-                >
-                  Batal
-                </button>
-                <button 
-                  onClick={handlePayment}
-                  disabled={isPaying}
-                  className="flex-1 py-3 px-4 bg-primary text-[#000000] font-bold rounded-xl shadow-md flex items-center justify-center"
-                >
-                  {isPaying ? (
-                    <div className="w-5 h-5 border-2 border-[#000000] border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    'Konfirmasi'
-                  )}
-                </button>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-foreground/70">Total Bayar</span>
+                <span className="font-bold text-2xl text-primary drop-shadow-sm">Rp {formatRupiah(selectedAmount)}</span>
               </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowPaymentModal(false)}
+                disabled={isPaying}
+                className="flex-1 py-3.5 px-4 bg-black/5 text-foreground font-bold rounded-xl text-sm"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handlePayment}
+                disabled={isPaying}
+                className="flex-1 py-3.5 px-4 bg-primary text-[#000000] font-bold rounded-xl shadow-sm text-sm flex items-center justify-center"
+              >
+                {isPaying ? (
+                  <div className="w-5 h-5 border-2 border-[#000000] border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  'Konfirmasi'
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -404,43 +383,41 @@ export default function HouseDetailPage() {
 
       {/* Modal Batal Pembayaran */}
       {showCancelModal.show && showCancelModal.period && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-6">
-              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Batalkan Pembayaran?</h3>
-              
-              <div className="bg-red-50 text-red-800 border border-red-200 rounded-lg p-3 text-sm text-center mb-6">
-                Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b> di kas sebesar Rp 3.500.
-              </div>
-              
-              <div className="mb-6 text-center space-y-1">
-                <p className="text-gray-600 text-sm">Periode</p>
-                <p className="font-semibold text-gray-900">{formatPeriod(showCancelModal.period)}</p>
-              </div>
-              
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowCancelModal({show: false, payment: null, period: null})}
-                  disabled={isCancelling}
-                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-xl"
-                >
-                  Kembali
-                </button>
-                <button 
-                  onClick={handleCancel}
-                  disabled={isCancelling}
-                  className="flex-1 py-3 px-4 bg-red-600 text-white font-bold rounded-xl shadow-md flex items-center justify-center"
-                >
-                  {isCancelling ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    'Ya, Batalkan'
-                  )}
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center backdrop-blur-sm">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground text-center mb-2">Batalkan Pembayaran?</h3>
+            
+            <div className="bg-red-50 text-red-800 border border-red-200 rounded-xl p-3 text-xs font-medium text-center mb-6">
+              Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b> di kas sebesar Rp 3.500.
+            </div>
+            
+            <div className="mb-6 text-center space-y-1">
+              <p className="text-foreground/60 text-sm font-semibold">Periode</p>
+              <p className="font-bold text-foreground text-base">{formatPeriod(showCancelModal.period)}</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowCancelModal({show: false, payment: null, period: null})}
+                disabled={isCancelling}
+                className="flex-1 py-3.5 px-4 bg-black/5 text-foreground font-bold rounded-xl text-sm"
+              >
+                Kembali
+              </button>
+              <button 
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className="flex-1 py-3.5 px-4 bg-red-600 text-white font-bold rounded-xl shadow-sm text-sm flex items-center justify-center"
+              >
+                {isCancelling ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  'Ya, Batalkan'
+                )}
+              </button>
             </div>
           </div>
         </div>

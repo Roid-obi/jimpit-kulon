@@ -1,7 +1,7 @@
 "use client";
 
 import { getAuth, sendEmailVerification } from "firebase/auth";
-import { MailCheck } from "lucide-react";
+import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,43 +45,42 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg text-center">
-        <div className="flex justify-center mb-6">
-          <div className="bg-blue-100 p-4 rounded-full text-blue-600">
-            <MailCheck className="w-12 h-12" />
-          </div>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-8 w-full max-w-sm text-center">
+        {/* Icon */}
+        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
+          <Mail className="w-8 h-8 text-primary" />
         </div>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Verifikasi Email Anda
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Kami telah mengirimkan email verifikasi ke{" "}
-          <strong>{user?.email || "email Anda"}</strong>. Silakan periksa kotak
-          masuk dan klik tautan untuk mengaktifkan akun Anda.
+        
+        <h1 className="text-xl font-bold text-foreground mb-2">Verifikasi Email Anda</h1>
+        <p className="text-sm text-foreground/50 leading-relaxed mb-1">
+          Kami telah mengirimkan email verifikasi ke
         </p>
-
+        <p className="text-sm font-semibold text-secondary mb-6">{user?.email}</p>
+        
+        {/* Error/Success messages */}
         {message && (
           <div
-            className={`p-3 rounded-lg mb-6 text-sm ${message.includes("Terjadi") || message.includes("Terlalu") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}
+            className={`p-3.5 rounded-xl mb-6 text-sm border ${message.includes("Terjadi") || message.includes("Terlalu") ? "bg-red-50 text-red-600 border-red-100" : "bg-green-50 text-green-700 border-green-100"}`}
           >
             {message}
           </div>
         )}
 
         <div className="space-y-3">
+          {/* Tombol Kirim Ulang */}
           <button
             onClick={handleResend}
             disabled={isSending || !user}
-            className="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-70"
+            className="w-full py-3.5 bg-primary text-[#000000] rounded-xl font-semibold text-base disabled:opacity-60 active:scale-[0.98]"
           >
             {isSending ? "Mengirim..." : "Kirim Ulang Email"}
           </button>
 
+          {/* Tombol Kembali ke Login */}
           <button
             onClick={handleLogout}
-            className="w-full py-3 bg-white text-gray-700 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            className="w-full py-3.5 bg-white text-foreground rounded-xl font-semibold text-base border border-black/10 shadow-sm active:scale-[0.98]"
           >
             Kembali ke Login
           </button>

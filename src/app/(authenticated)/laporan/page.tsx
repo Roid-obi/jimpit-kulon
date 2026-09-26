@@ -52,8 +52,11 @@ export default function LaporanPage() {
         setSelectedPeriodId(periodsData[0].id);
       }
 
-      const housesSnap = await getDocs(query(collection(db, 'houses'), where('isActive', '==', true), orderBy('houseNumber', 'asc')));
-      setHouses(housesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const housesSnap = await getDocs(query(collection(db, 'houses'), where('isActive', '==', true)));
+      const housesData = housesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort client-side untuk menghindari composite index (where + orderBy)
+      housesData.sort((a: any, b: any) => a.houseNumber.localeCompare(b.houseNumber, undefined, { numeric: true }));
+      setHouses(housesData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -84,14 +87,20 @@ export default function LaporanPage() {
       const startOfMonth = new Date(year, month - 1, 1);
       const endOfMonth = new Date(year, month, 0, 23, 59, 59);
       
+      // Fetch semua transaksi, filter by date range client-side
+      // untuk menghindari composite index (range where + orderBy pada field yang sama seharusnya OK,
+      // tapi untuk keamanan kita filter client-side)
       const txSnap = await getDocs(query(
         collection(db, 'financial_transactions'),
-        where('createdAt', '>=', Timestamp.fromDate(startOfMonth)),
-        where('createdAt', '<=', Timestamp.fromDate(endOfMonth)),
         orderBy('createdAt', 'desc')
       ));
       
-      const txData = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const txData = txSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((tx: any) => {
+          const ts = tx.createdAt?.toDate?.();
+          return ts && ts >= startOfMonth && ts <= endOfMonth;
+        });
       setTransactions(txData);
       
       let income = 0;
@@ -119,22 +128,22 @@ export default function LaporanPage() {
   const totalHouses = houses.length;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto w-full">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Laporan</h1>
+    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
+      <h1 className="text-xl font-bold text-foreground mb-6">Laporan</h1>
 
-      <div className="flex gap-2 p-1 bg-foreground/10 rounded-lg mb-6">
+      <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6">
         <button
           onClick={() => setActiveTab('jimpitan')}
-          className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'jimpitan' ? 'bg-background shadow text-foreground' : 'text-foreground/60'
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            activeTab === 'jimpitan' ? 'bg-white shadow-sm text-foreground' : 'text-foreground/50'
           }`}
         >
           Laporan Jimpitan
         </button>
         <button
           onClick={() => setActiveTab('keuangan')}
-          className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'keuangan' ? 'bg-background shadow text-foreground' : 'text-foreground/60'
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            activeTab === 'keuangan' ? 'bg-white shadow-sm text-foreground' : 'text-foreground/50'
           }`}
         >
           Laporan Keuangan
@@ -143,12 +152,12 @@ export default function LaporanPage() {
 
       {activeTab === 'jimpitan' && (
         <div className="flex flex-col gap-4">
-          <div className="bg-background p-4 rounded-xl shadow-sm border border-foreground/10">
-            <label className="block text-sm font-medium text-foreground/80 mb-2">Pilih Periode</label>
+          <div className="bg-white p-5 rounded-2xl border border-black/5">
+            <label className="block text-sm font-semibold text-foreground mb-2">Pilih Periode</label>
             <select
               value={selectedPeriodId}
               onChange={(e) => setSelectedPeriodId(e.target.value)}
-              className="w-full p-2 border border-foreground/20 rounded-md bg-background text-foreground"
+              className="w-full rounded-xl border border-black/8 bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground"
             >
               {periods.map(p => (
                 <option key={p.id} value={p.id}>
@@ -157,31 +166,40 @@ export default function LaporanPage() {
               ))}
             </select>
             
-            <div className="mt-4 p-3 bg-primary/10 rounded-lg">
-              <p className="text-sm font-medium text-foreground">
-                Progress Pembayaran: <span className="font-bold text-primary">{paidCount} dari {totalHouses} rumah lunas</span>
-              </p>
+            <div className="mt-4 p-4 bg-green-50/50 border border-green-100 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-green-700">Progress Pembayaran</p>
+                <p className="text-sm font-bold text-green-800 mt-0.5">{paidCount} dari {totalHouses} rumah lunas</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-sm">
+                {totalHouses > 0 ? Math.round((paidCount/totalHouses)*100) : 0}%
+              </div>
             </div>
           </div>
 
-          <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-            <ul className="divide-y divide-foreground/10">
+          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+            <ul className="divide-y divide-black/[0.04]">
               {houses.map(house => {
                 const isPaid = payments.some(p => p.houseId === house.id);
                 return (
                   <li key={house.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">{house.houseNumber}</p>
-                      <p className="text-sm text-foreground/70">{house.headOfFamily}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                        {house.houseNumber}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">{house.headOfFamily}</p>
+                        <p className="text-xs text-foreground/50 mt-0.5">Rumah {house.houseNumber}</p>
+                      </div>
                     </div>
                     <div>
                       {isPaid ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Lunas
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                          LUNAS
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Belum
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-600">
+                          BELUM
                         </span>
                       )}
                     </div>
@@ -190,7 +208,7 @@ export default function LaporanPage() {
               })}
             </ul>
             {houses.length === 0 && !loading && (
-              <div className="p-8 text-center text-foreground/60">Belum ada data rumah aktif.</div>
+              <div className="p-8 text-center text-sm text-foreground/50">Belum ada data rumah aktif.</div>
             )}
           </div>
         </div>
@@ -198,50 +216,50 @@ export default function LaporanPage() {
 
       {activeTab === 'keuangan' && (
         <div className="flex flex-col gap-4">
-          <div className="bg-background p-4 rounded-xl shadow-sm border border-foreground/10">
-            <label className="block text-sm font-medium text-foreground/80 mb-2">Pilih Bulan</label>
+          <div className="bg-white p-5 rounded-2xl border border-black/5">
+            <label className="block text-sm font-semibold text-foreground mb-2">Pilih Bulan</label>
             <input
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full p-2 border border-foreground/20 rounded-md bg-background text-foreground"
+              className="w-full rounded-xl border border-black/8 bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-background p-4 rounded-xl shadow-sm border border-foreground/10">
-              <p className="text-sm text-foreground/70 mb-1">Total Pemasukan</p>
-              <p className="text-xl font-bold text-green-600">Rp {financialSummary.income.toLocaleString('id-ID')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+              <p className="text-[10px] text-green-700/80 mb-1 font-semibold">Total Pemasukan</p>
+              <p className="text-sm font-bold text-green-700 truncate w-full">Rp {financialSummary.income.toLocaleString('id-ID')}</p>
             </div>
-            <div className="bg-background p-4 rounded-xl shadow-sm border border-foreground/10">
-              <p className="text-sm text-foreground/70 mb-1">Total Pengeluaran</p>
-              <p className="text-xl font-bold text-red-600">Rp {financialSummary.expense.toLocaleString('id-ID')}</p>
+            <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+              <p className="text-[10px] text-red-600/80 mb-1 font-semibold">Total Pengeluaran</p>
+              <p className="text-sm font-bold text-red-600 truncate w-full">Rp {financialSummary.expense.toLocaleString('id-ID')}</p>
             </div>
-            <div className="bg-primary p-4 rounded-xl shadow-sm">
-              <p className="text-sm text-[#000000]/70 mb-1">Saldo Bulan Ini</p>
+            <div className="bg-primary p-4 rounded-2xl col-span-2 shadow-sm mt-2">
+              <p className="text-xs text-[#000000]/70 mb-1 font-semibold">Saldo Bulan Ini</p>
               <p className="text-xl font-bold text-[#000000]">Rp {financialSummary.balance.toLocaleString('id-ID')}</p>
             </div>
           </div>
 
-          <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-            <div className="p-4 border-b border-foreground/10 bg-foreground/5">
-              <h2 className="font-semibold text-foreground">Daftar Transaksi</h2>
+          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+            <div className="p-4 border-b border-black/5 bg-black/[0.02]">
+              <h2 className="font-semibold text-sm text-foreground">Daftar Transaksi</h2>
             </div>
-            <ul className="divide-y divide-foreground/10">
+            <ul className="divide-y divide-black/[0.04]">
               {transactions.map(tx => (
                 <li key={tx.id} className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-foreground">{tx.description || tx.category || 'Transaksi'}</p>
-                    <p className="text-xs text-foreground/60">{tx.createdAt?.toDate().toLocaleDateString('id-ID')}</p>
+                    <p className="font-medium text-sm text-foreground">{tx.description || tx.category || 'Transaksi'}</p>
+                    <p className="text-xs text-foreground/50 mt-0.5">{tx.createdAt?.toDate().toLocaleDateString('id-ID')}</p>
                   </div>
-                  <div className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`font-bold text-sm ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                     {tx.type === 'income' ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
                   </div>
                 </li>
               ))}
             </ul>
             {transactions.length === 0 && !loading && (
-              <div className="p-8 text-center text-foreground/60">Belum ada transaksi di bulan ini.</div>
+              <div className="p-8 text-center text-sm text-foreground/50">Belum ada transaksi di bulan ini.</div>
             )}
           </div>
         </div>

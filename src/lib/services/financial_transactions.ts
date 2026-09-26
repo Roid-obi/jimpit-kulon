@@ -44,27 +44,24 @@ export interface ExpenseInput {
 export async function getTransactions(
   filter?: "income" | "expense"
 ): Promise<FinancialTransaction[]> {
-  let q;
   const transactionsCol = collection(db, "financial_transactions");
-
-  if (filter) {
-    q = query(
-      transactionsCol,
-      where("type", "==", filter),
-      orderBy("createdAt", "desc")
-    );
-  } else {
-    q = query(transactionsCol, orderBy("createdAt", "desc"));
-  }
-
+  // Fetch semua transaksi sorted by createdAt, filter type client-side
+  // untuk menghindari composite index requirement (where+orderBy pada field berbeda)
+  const q = query(transactionsCol, orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(
+
+  const all = snapshot.docs.map(
     (doc) =>
       ({
         id: doc.id,
         ...doc.data(),
       }) as FinancialTransaction
   );
+
+  if (filter) {
+    return all.filter((tx) => tx.type === filter);
+  }
+  return all;
 }
 
 // Hitung ringkasan keuangan

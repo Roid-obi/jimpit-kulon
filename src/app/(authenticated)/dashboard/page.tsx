@@ -79,7 +79,6 @@ export default function DashboardPage() {
         const periodQ = query(
           collection(db, "periods"),
           where("status", "==", "active"),
-          orderBy("startDate", "desc"),
           limit(1)
         );
         const periodSnapshot = await getDocs(periodQ);
@@ -137,111 +136,131 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col p-4 max-w-lg mx-auto w-full space-y-6 pb-20">
+    <div className="flex flex-col p-4 max-w-lg mx-auto w-full space-y-6 pb-24">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Selamat datang, {userData?.name || userData?.email?.split('@')[0] || 'Warga'}!
-        </h1>
-        <p className="text-sm text-gray-500">{todayStr}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-foreground/50 mb-0.5">{todayStr}</p>
+          <h1 className="text-xl font-bold text-foreground">
+            Halo, {userData?.name?.split(' ')[0] || 'Petugas'} 👋
+          </h1>
+        </div>
       </div>
 
       {/* Saldo Jimpitan Card */}
-      <div className="bg-primary rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
-        <p className="text-[#000000] text-sm font-medium mb-1">Saldo Dana Jimpitan</p>
-        <h2 className="text-[#000000] text-3xl font-bold tracking-tight">
+      <div className="relative bg-secondary rounded-3xl p-6 overflow-hidden">
+        {/* decorative circle */}
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
+        <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full" />
+        <p className="text-[#f7f7f7]/70 text-sm font-medium mb-1">Saldo Dana Jimpitan</p>
+        <h2 className="text-[#f7f7f7] text-3xl font-bold tracking-tight relative z-10">
           {formatRupiah(balance)}
         </h2>
+        <p className="text-[#f7f7f7]/50 text-xs mt-2">Diperbarui hari ini</p>
       </div>
 
       {/* Income / Expense Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-black/5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="bg-green-100 p-2 rounded-full">
+            <div className="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-green-600" />
             </div>
-            <p className="text-sm text-gray-500">Pemasukan</p>
+            <span className="text-xs text-foreground/50 font-medium">Pemasukan</span>
           </div>
-          <p className="font-semibold text-gray-900">{formatRupiah(totalIncome)}</p>
+          <p className="text-base font-bold text-foreground">{formatRupiah(totalIncome)}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-4 border border-black/5">
           <div className="flex items-center gap-2 mb-2">
-            <div className="bg-red-100 p-2 rounded-full">
-              <TrendingDown className="w-4 h-4 text-red-600" />
+            <div className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center">
+              <TrendingDown className="w-4 h-4 text-red-500" />
             </div>
-            <p className="text-sm text-gray-500">Pengeluaran</p>
+            <span className="text-xs text-foreground/50 font-medium">Pengeluaran</span>
           </div>
-          <p className="font-semibold text-gray-900">{formatRupiah(totalExpense)}</p>
+          <p className="text-base font-bold text-foreground">{formatRupiah(totalExpense)}</p>
         </div>
       </div>
 
       {/* Status Periode Berjalan */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-3">Periode Berjalan</h3>
+      <div className="bg-white rounded-2xl p-5 border border-black/5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-foreground text-sm">Periode Berjalan</h3>
+          {activePeriod && (
+            <span className="text-xs bg-primary/20 text-foreground font-medium px-2 py-0.5 rounded-full">
+              Aktif
+            </span>
+          )}
+        </div>
         {activePeriod ? (
-          <div>
-            <p className="text-sm text-gray-600 mb-4 font-medium">
+          <>
+            <p className="text-xs text-foreground/50 mb-4">
               {formatPeriodDate(activePeriod.startDate, activePeriod.endDate)}
             </p>
-            
-            <div className="mb-2 flex justify-between text-sm">
-              <span className="text-gray-600">{housesLunas} / {totalHouses} Rumah Lunas</span>
-              <span className="font-medium text-primary">
-                {Math.round((housesLunas / (totalHouses || 1)) * 100)}%
-              </span>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-foreground/60">{housesLunas} rumah lunas</span>
+                <span className="font-bold text-primary">{Math.round((housesLunas / (totalHouses || 1)) * 100)}%</span>
+              </div>
+              <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min((housesLunas / (totalHouses || 1)) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-green-600 font-medium">{housesLunas} Lunas</span>
+                <span className="text-orange-500 font-medium">{totalHouses - housesLunas} Belum Bayar</span>
+              </div>
             </div>
-            
-            <div className="w-full bg-gray-100 rounded-full h-2.5 mb-3">
-              <div 
-                className="bg-primary h-2.5 rounded-full" 
-                style={{ width: `${Math.min((housesLunas / (totalHouses || 1)) * 100, 100)}%` }}
-              ></div>
-            </div>
-            
-            <p className="text-sm text-red-500">
-              {totalHouses - housesLunas} Rumah Belum Bayar
-            </p>
-          </div>
+          </>
         ) : (
-          <p className="text-sm text-gray-500 py-2">Tidak ada periode aktif</p>
+          <div className="py-4 text-center">
+            <p className="text-sm text-foreground/40">Tidak ada periode aktif</p>
+          </div>
         )}
       </div>
 
       {/* Transaksi Terbaru */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h3 className="font-semibold text-gray-900">Transaksi Terbaru</h3>
-          <Link href="/keuangan" className="text-sm text-primary font-medium flex items-center hover:underline">
-            Lihat Semua
-            <ChevronRight className="w-4 h-4 ml-1" />
+      <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+        <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/5">
+          <h3 className="font-semibold text-foreground text-sm">Transaksi Terbaru</h3>
+          <Link href="/keuangan" className="text-xs text-primary font-semibold flex items-center gap-0.5">
+            Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        
         {recentTransactions.length > 0 ? (
-          <ul className="divide-y divide-gray-100">
-            {recentTransactions.map((tx) => (
-              <li key={tx.id} className="p-4 flex items-center justify-between">
+          <ul>
+            {recentTransactions.map((tx, i) => (
+              <li key={tx.id} className={`px-4 py-3.5 flex items-center justify-between ${
+                i < recentTransactions.length - 1 ? 'border-b border-black/[0.04]' : ''
+              }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${tx.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                    {tx.type === 'income' ? <Plus className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    tx.type === 'income' ? 'bg-green-50' : 'bg-red-50'
+                  }`}>
+                    {tx.type === 'income'
+                      ? <TrendingUp className="w-4 h-4 text-green-600" />
+                      : <TrendingDown className="w-4 h-4 text-red-500" />
+                    }
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{tx.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {tx.createdAt?.toDate ? tx.createdAt.toDate().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                    <p className="text-sm font-medium text-foreground leading-tight">{tx.description}</p>
+                    <p className="text-xs text-foreground/40 mt-0.5">
+                      {tx.createdAt?.toDate?.()?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) || '-'}
                     </p>
                   </div>
                 </div>
-                <span className={`font-semibold text-sm ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-sm font-bold ${
+                  tx.type === 'income' ? 'text-green-600' : 'text-red-500'
+                }`}>
                   {tx.type === 'income' ? '+' : '-'}{formatRupiah(tx.amount)}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="p-6 text-center text-gray-500 text-sm">
-            Belum ada transaksi.
+          <div className="py-10 text-center">
+            <p className="text-sm text-foreground/40">Belum ada transaksi</p>
           </div>
         )}
       </div>

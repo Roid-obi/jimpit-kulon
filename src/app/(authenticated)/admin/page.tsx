@@ -54,11 +54,51 @@ export default function AdminPage() {
   const fetchHouses = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'houses'), orderBy('houseNumber', 'asc')));
-      setHouses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const snap = await getDocs(collection(db, 'houses'));
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort client-side untuk menghindari composite index
+      data.sort((a: any, b: any) => a.houseNumber.localeCompare(b.houseNumber, undefined, { numeric: true }));
+      setHouses(data);
     } catch (err) {
       console.error(err);
       setError('Gagal memuat data rumah');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Seed data contoh untuk 10 rumah pertama
+  const handleSeedHouses = async () => {
+    if (!window.confirm('Ini akan menambahkan 10 data rumah contoh ke database. Lanjutkan?')) return;
+    setLoading(true);
+    try {
+      const contohRumah = [
+        { houseNumber: '001', headOfFamily: 'Bapak Suharto', address: 'RT 05 No. 1' },
+        { houseNumber: '002', headOfFamily: 'Bapak Sudirman', address: 'RT 05 No. 2' },
+        { houseNumber: '003', headOfFamily: 'Bapak Wahyu Santoso', address: 'RT 05 No. 3' },
+        { houseNumber: '004', headOfFamily: 'Bapak Agus Purnomo', address: 'RT 05 No. 4' },
+        { houseNumber: '005', headOfFamily: 'Bapak Eko Prasetyo', address: 'RT 05 No. 5' },
+        { houseNumber: '006', headOfFamily: 'Ibu Siti Rahayu', address: 'RT 05 No. 6' },
+        { houseNumber: '007', headOfFamily: 'Bapak Joko Widodo', address: 'RT 05 No. 7' },
+        { houseNumber: '008', headOfFamily: 'Bapak Bambang Sutrisno', address: 'RT 05 No. 8' },
+        { houseNumber: '009', headOfFamily: 'Ibu Dewi Lestari', address: 'RT 05 No. 9' },
+        { houseNumber: '010', headOfFamily: 'Bapak Hendra Gunawan', address: 'RT 05 No. 10' },
+      ];
+      for (const rumah of contohRumah) {
+        await addDoc(collection(db, 'houses'), {
+          ...rumah,
+          qrCode: `RUMAH-${rumah.houseNumber}`,
+          notes: null,
+          isActive: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await fetchHouses();
+      alert('10 data rumah contoh berhasil ditambahkan!');
+    } catch (err) {
+      console.error(err);
+      setError('Gagal menambahkan data contoh');
     } finally {
       setLoading(false);
     }
@@ -186,35 +226,31 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex flex-col p-4 max-w-4xl mx-auto w-full gap-6">
-      <h1 className="text-2xl font-bold text-foreground">Panel Admin</h1>
+    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
+      <h1 className="text-xl font-bold text-foreground mb-6">Panel Admin</h1>
 
       {/* Tabs Navigation */}
-      <div className="flex overflow-x-auto gap-2 p-1 bg-foreground/10 rounded-lg">
+      <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6 overflow-x-auto">
         {[
-          { id: 'periode', label: 'Periode', icon: Calendar },
-          { id: 'rumah', label: 'Rumah', icon: Home },
-          { id: 'pengguna', label: 'Pengguna', icon: Users },
-          { id: 'pengaturan', label: 'Pengaturan', icon: Settings },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id ? 'bg-background shadow text-foreground' : 'text-foreground/60 hover:text-foreground'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+          { id: 'periode', emoji: '📅', label: 'Periode' },
+          { id: 'rumah', emoji: '🏠', label: 'Rumah' },
+          { id: 'pengguna', emoji: '👥', label: 'Pengguna' },
+          { id: 'pengaturan', emoji: '⚙️', label: 'Pengaturan' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex-1 min-w-fit py-2 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              activeTab === tab.id ? 'bg-white text-foreground shadow-sm' : 'text-foreground/50'
+            }`}
+          >
+            {tab.emoji} {tab.label}
+          </button>
+        ))}
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex justify-between items-center">
+        <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-semibold flex justify-between items-center mb-4 border border-red-100">
           {error}
           <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
         </div>
@@ -222,181 +258,177 @@ export default function AdminPage() {
 
       {/* TAB PERIODE */}
       {activeTab === 'periode' && (
-        <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-          <div className="p-4 border-b border-foreground/10 bg-foreground/5 flex justify-between items-center">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-foreground/50" /> Daftar Periode
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/5 flex justify-between items-center bg-black/[0.02]">
+            <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+              Daftar Periode
             </h2>
             <button
               onClick={handleCreatePeriod}
               disabled={isCreatingPeriod}
-              className="flex items-center gap-2 bg-primary text-[#000000] px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-1.5 bg-primary text-[#000000] px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
             >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{isCreatingPeriod ? 'Membuat...' : 'Buat Periode'}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isCreatingPeriod ? 'Membuat...' : 'Buat Periode'}</span>
             </button>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-foreground/50">Memuat...</div>
+            <div className="p-8 text-center text-sm text-foreground/50">Memuat...</div>
           ) : (
-            <ul className="divide-y divide-foreground/10">
+            <div className="divide-y divide-black/[0.04]">
               {periods.map(period => (
-                <li key={period.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div key={period.id} className="px-4 py-3.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-semibold text-foreground">
                       {formatDateRange(period.startDate, period.endDate)}
                     </p>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-2 inline-block ${
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5 inline-block ${
                       period.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {period.status === 'active' ? 'Aktif' : 'Arsip'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <p className="font-semibold text-foreground">Rp {period.amount?.toLocaleString('id-ID')}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-sm text-foreground">Rp {period.amount?.toLocaleString('id-ID')}</p>
                     {period.status === 'active' && (
                       <button
                         onClick={() => handleArchivePeriod(period.id)}
-                        className="text-foreground/50 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                        className="text-red-500 bg-red-50 p-1.5 rounded-lg hover:bg-red-100 transition-colors"
                         title="Arsipkan"
                       >
-                        <Archive className="w-4 h-4" />
+                        <Archive className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                </li>
+                </div>
               ))}
-              {periods.length === 0 && <div className="p-8 text-center text-foreground/50">Belum ada periode.</div>}
-            </ul>
+              {periods.length === 0 && <div className="p-8 text-center text-sm text-foreground/50">Belum ada periode.</div>}
+            </div>
           )}
         </div>
       )}
 
       {/* TAB RUMAH */}
       {activeTab === 'rumah' && (
-        <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-          <div className="p-4 border-b border-foreground/10 bg-foreground/5 flex justify-between items-center">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <Home className="w-5 h-5 text-foreground/50" /> Daftar Rumah
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/5 flex justify-between items-center bg-black/[0.02]">
+            <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+              Daftar Rumah
             </h2>
             <button
               onClick={() => setShowHouseForm(!showHouseForm)}
-              className="flex items-center gap-2 bg-primary text-[#000000] px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              className="flex items-center gap-1.5 bg-primary text-[#000000] px-4 py-2 rounded-xl text-xs font-bold transition-colors"
             >
-              {showHouseForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              <span className="hidden sm:inline">{showHouseForm ? 'Batal' : 'Tambah Rumah'}</span>
+              {showHouseForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+              <span>{showHouseForm ? 'Batal' : 'Tambah'}</span>
             </button>
           </div>
 
           {showHouseForm && (
-            <div className="p-4 border-b border-foreground/10 bg-foreground/5">
-              <form onSubmit={handleAddHouse} className="flex flex-col gap-4 max-w-md">
+            <div className="p-4 border-b border-black/5 bg-gray-50/50">
+              <form onSubmit={handleAddHouse} className="flex flex-col gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-foreground/80">Nomor Rumah</label>
-                  <input required value={newHouse.houseNumber} onChange={e => setNewHouse({...newHouse, houseNumber: e.target.value})} className="w-full p-2 border border-foreground/20 rounded-md bg-background text-foreground" placeholder="Contoh: A-1" />
+                  <label className="block text-xs font-semibold mb-1 text-foreground/80">Nomor Rumah</label>
+                  <input required value={newHouse.houseNumber} onChange={e => setNewHouse({...newHouse, houseNumber: e.target.value})} className="w-full px-3 py-2 border border-black/8 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Contoh: A-1" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-foreground/80">Kepala Keluarga</label>
-                  <input required value={newHouse.headOfFamily} onChange={e => setNewHouse({...newHouse, headOfFamily: e.target.value})} className="w-full p-2 border border-foreground/20 rounded-md bg-background text-foreground" placeholder="Nama lengkap" />
+                  <label className="block text-xs font-semibold mb-1 text-foreground/80">Kepala Keluarga</label>
+                  <input required value={newHouse.headOfFamily} onChange={e => setNewHouse({...newHouse, headOfFamily: e.target.value})} className="w-full px-3 py-2 border border-black/8 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="Nama lengkap" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-foreground/80">Alamat Lengkap</label>
-                  <textarea required value={newHouse.address} onChange={e => setNewHouse({...newHouse, address: e.target.value})} className="w-full p-2 border border-foreground/20 rounded-md bg-background text-foreground" rows={2} />
+                  <label className="block text-xs font-semibold mb-1 text-foreground/80">Alamat Lengkap</label>
+                  <textarea required value={newHouse.address} onChange={e => setNewHouse({...newHouse, address: e.target.value})} className="w-full px-3 py-2 border border-black/8 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" rows={2} />
                 </div>
-                <button type="submit" className="bg-secondary text-[#f7f7f7] py-2 rounded-md font-medium hover:opacity-90">Simpan Rumah</button>
+                <button type="submit" className="bg-secondary text-[#f7f7f7] py-2.5 mt-1 rounded-xl font-bold text-sm">Simpan Rumah</button>
               </form>
             </div>
           )}
 
           {loading ? (
-            <div className="p-8 text-center text-foreground/50">Memuat...</div>
+            <div className="p-8 text-center text-sm text-foreground/50">Memuat...</div>
           ) : (
-            <ul className="divide-y divide-foreground/10">
+            <div className="divide-y divide-black/[0.04]">
               {houses.map(house => (
-                <li key={house.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div key={house.id} className="px-4 py-3.5 flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground">{house.houseNumber}</p>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${house.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <p className="font-semibold text-sm text-foreground">{house.houseNumber}</p>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${house.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {house.isActive ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/70">{house.headOfFamily}</p>
-                    <p className="text-xs text-foreground/50 mt-1 font-mono">QR: {house.id}</p>
+                    <p className="text-xs font-medium text-foreground/70 mt-0.5">{house.headOfFamily}</p>
                   </div>
                   <button
                     onClick={() => handleToggleHouseActive(house.id, house.isActive)}
-                    className="text-sm px-3 py-1 rounded-md border border-foreground/20 hover:bg-foreground/5"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${house.isActive ? 'border-red-200 text-red-600 bg-red-50' : 'border-green-200 text-green-700 bg-green-50'}`}
                   >
                     Set {house.isActive ? 'Nonaktif' : 'Aktif'}
                   </button>
-                </li>
+                </div>
               ))}
-              {houses.length === 0 && <div className="p-8 text-center text-foreground/50">Belum ada data rumah.</div>}
-            </ul>
+              {houses.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-foreground/50 mb-3">Belum ada data rumah.</p>
+                  <button
+                    onClick={handleSeedHouses}
+                    disabled={loading}
+                    className="bg-primary text-[#000000] px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+                  >
+                    📋 Isi 10 Data Rumah Contoh
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
 
       {/* TAB PENGGUNA */}
       {activeTab === 'pengguna' && (
-        <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-          <div className="p-4 border-b border-foreground/10 bg-foreground/5">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <Users className="w-5 h-5 text-foreground/50" /> Manajemen Pengguna
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/5 bg-black/[0.02]">
+            <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+              Manajemen Pengguna
             </h2>
           </div>
           {loading ? (
-            <div className="p-8 text-center text-foreground/50">Memuat...</div>
+            <div className="p-8 text-center text-sm text-foreground/50">Memuat...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-foreground/5 border-b border-foreground/10">
-                  <tr>
-                    <th className="p-4 font-medium text-foreground/70">Nama / Email</th>
-                    <th className="p-4 font-medium text-foreground/70">Role</th>
-                    <th className="p-4 font-medium text-foreground/70">Status</th>
-                    <th className="p-4 font-medium text-foreground/70 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-foreground/10">
-                  {users.map(u => (
-                    <tr key={u.id}>
-                      <td className="p-4">
-                        <p className="font-medium text-foreground">{u.name}</p>
-                        <p className="text-foreground/50 text-xs">{u.email}</p>
-                      </td>
-                      <td className="p-4">
-                        <select
-                          value={u.role || 'warga'}
-                          onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
-                          className="p-1 text-sm border border-foreground/20 rounded-md bg-background"
-                          disabled={u.id === user?.uid}
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="petugas">Petugas</option>
-                          <option value="warga">Warga</option>
-                        </select>
-                      </td>
-                      <td className="p-4">
-                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {u.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={() => handleToggleUserActive(u.id, !!u.isActive)}
-                          disabled={u.id === user?.uid}
-                          className="text-xs px-2 py-1 rounded-md border border-foreground/20 hover:bg-foreground/5 disabled:opacity-50"
-                        >
-                          {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {users.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-foreground/50">Tidak ada pengguna.</td></tr>}
-                </tbody>
-              </table>
+            <div className="divide-y divide-black/[0.04]">
+              {users.map(u => (
+                <div key={u.id} className="px-4 py-3.5 flex flex-col gap-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">{u.name}</p>
+                      <p className="text-foreground/50 text-xs mt-0.5">{u.email}</p>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 inline-block ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {u.isActive ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <select
+                        value={u.role || 'warga'}
+                        onChange={(e) => handleChangeUserRole(u.id, e.target.value)}
+                        className="py-1 px-2 text-xs font-medium border border-black/8 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        disabled={u.id === user?.uid}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="petugas">Petugas</option>
+                        <option value="warga">Warga</option>
+                      </select>
+                      <button
+                        onClick={() => handleToggleUserActive(u.id, !!u.isActive)}
+                        disabled={u.id === user?.uid}
+                        className={`px-3 py-1 rounded-lg text-[10px] font-bold border disabled:opacity-50 ${u.isActive ? 'border-red-200 text-red-600 bg-red-50' : 'border-green-200 text-green-700 bg-green-50'}`}
+                      >
+                        {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && <div className="p-8 text-center text-sm text-foreground/50">Tidak ada pengguna.</div>}
             </div>
           )}
         </div>
@@ -404,27 +436,27 @@ export default function AdminPage() {
 
       {/* TAB PENGATURAN */}
       {activeTab === 'pengaturan' && (
-        <div className="bg-background rounded-xl shadow-sm border border-foreground/10 overflow-hidden">
-          <div className="p-4 border-b border-foreground/10 bg-foreground/5">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <Settings className="w-5 h-5 text-foreground/50" /> Pengaturan Sistem
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/5 bg-black/[0.02]">
+            <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+              Pengaturan Sistem
             </h2>
           </div>
-          <div className="p-6 flex flex-col gap-4">
-            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-              <h3 className="font-medium text-foreground mb-2">Informasi Pembayaran Jimpitan</h3>
-              <ul className="text-sm text-foreground/80 space-y-2">
-                <li className="flex justify-between border-b border-foreground/10 pb-1">
-                  <span>Nominal Harian:</span> <span className="font-bold">Rp 500</span>
+          <div className="p-5 flex flex-col gap-4">
+            <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
+              <h3 className="font-bold text-sm text-foreground mb-3">Informasi Pembayaran Jimpitan</h3>
+              <ul className="text-xs text-foreground/80 space-y-2">
+                <li className="flex justify-between border-b border-black/5 pb-1.5">
+                  <span className="font-medium">Nominal Harian:</span> <span className="font-bold">Rp 500</span>
                 </li>
-                <li className="flex justify-between border-b border-foreground/10 pb-1">
-                  <span>Nominal per Periode (7 hari):</span> <span className="font-bold">Rp 3.500</span>
+                <li className="flex justify-between border-b border-black/5 pb-1.5">
+                  <span className="font-medium">Nominal per Periode (7 hari):</span> <span className="font-bold">Rp 3.500</span>
                 </li>
-                <li className="flex justify-between border-b border-foreground/10 pb-1">
-                  <span>Hari Penarikan:</span> <span className="font-bold">Sabtu</span>
+                <li className="flex justify-between pb-0.5">
+                  <span className="font-medium">Hari Penarikan:</span> <span className="font-bold">Sabtu</span>
                 </li>
               </ul>
-              <p className="text-xs text-foreground/60 mt-4 italic">
+              <p className="text-[10px] font-medium text-foreground/50 mt-4 italic">
                 * Catatan: Perubahan nominal akan memengaruhi periode yang dibuat setelahnya.
               </p>
             </div>

@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, ge
 import { app } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, TrendingDown } from 'lucide-react';
 
 const db = getFirestore(app);
 
@@ -38,14 +39,12 @@ export default function PengeluaranPage() {
       setLoading(true);
       const q = query(
         collection(db, 'financial_transactions'),
-        where('type', '==', 'expense'),
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Expense[];
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((tx: any) => tx.type === 'expense') as Expense[];
       setExpenses(data);
     } catch (err) {
       console.error(err);
@@ -96,23 +95,24 @@ export default function PengeluaranPage() {
   const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
 
   return (
-    <div className="flex flex-col p-4 bg-background min-h-screen">
-      <button onClick={() => router.back()} className="text-sm text-gray-600 mb-4 flex items-center">
-        &larr; Kembali
-      </button>
-      
-      <h1 className="text-2xl font-bold text-foreground mb-6">Tambah Pengeluaran</h1>
+    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <h1 className="text-lg font-bold text-foreground">Tambah Pengeluaran</h1>
+      </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-8 flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-black/5 p-5 mb-6 flex flex-col gap-4">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Nominal</label>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">Nominal</label>
           <div className="relative">
-            <span className="absolute left-3 top-2.5 text-gray-500">Rp</span>
+            <span className="absolute left-4 top-3.5 text-foreground/50 text-sm font-medium">Rp</span>
             <input 
               type="number" 
               value={amount} 
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full p-2 pl-10 border rounded-lg"
+              className="w-full px-4 py-3 pl-11 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="0"
               required
             />
@@ -120,47 +120,47 @@ export default function PengeluaranPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Keperluan</label>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">Keperluan</label>
           <input 
             type="text" 
             value={description} 
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-2 border rounded-lg"
+            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Deskripsi pengeluaran..."
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Diambil oleh</label>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">Diambil oleh</label>
           <input 
             type="text" 
             value={takenBy} 
             onChange={(e) => setTakenBy(e.target.value)}
-            className="w-full p-2 border rounded-lg"
+            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Nama pengambil dana..."
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Catatan (Opsional)</label>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">Catatan (Opsional)</label>
           <textarea 
             value={note} 
             onChange={(e) => setNote(e.target.value)}
-            className="w-full p-2 border rounded-lg"
+            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             rows={2}
             placeholder="Catatan tambahan..."
           ></textarea>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">Waktu</label>
+          <label className="block text-sm font-semibold text-foreground mb-1.5">Waktu</label>
           <input 
             type="datetime-local" 
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-full p-2 border rounded-lg"
+            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             required
           />
         </div>
@@ -168,7 +168,7 @@ export default function PengeluaranPage() {
         <button 
           type="submit" 
           disabled={submitting}
-          className="w-full bg-secondary text-[#f7f7f7] py-3 rounded-lg font-medium mt-2 disabled:opacity-50"
+          className="bg-secondary text-[#f7f7f7] py-4 rounded-xl font-bold text-base w-full mt-2 disabled:opacity-50"
         >
           {submitting ? 'Menyimpan...' : 'Simpan Pengeluaran'}
         </button>
@@ -177,21 +177,25 @@ export default function PengeluaranPage() {
       <h2 className="text-lg font-bold text-foreground mb-4">Daftar Pengeluaran</h2>
       
       {loading ? (
-        <p className="text-center text-gray-500 py-4">Memuat data...</p>
+        <p className="text-center text-sm text-foreground/50 py-4">Memuat data...</p>
       ) : expenses.length === 0 ? (
-        <p className="text-center text-gray-500 py-4">Belum ada pengeluaran</p>
+        <p className="text-center text-sm text-foreground/50 py-4">Belum ada pengeluaran</p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {expenses.map(exp => (
-            <div key={exp.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-              <div>
-                <p className="font-medium text-foreground">{exp.description}</p>
-                <p className="text-sm text-gray-600">Oleh: {exp.takenBy}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {exp.createdAt?.toDate ? exp.createdAt.toDate().toLocaleDateString('id-ID') : 'Tanggal tidak tersedia'}
-                </p>
+            <div key={exp.id} className="bg-white px-4 py-3.5 rounded-2xl border border-black/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-100">
+                  <TrendingDown className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{exp.description}</p>
+                  <p className="text-xs text-foreground/50 mt-0.5">
+                    Oleh: {exp.takenBy} &bull; {exp.createdAt?.toDate ? exp.createdAt.toDate().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : 'Tanggal tidak tersedia'}
+                  </p>
+                </div>
               </div>
-              <p className="font-bold text-red-600">-{formatRupiah(exp.amount)}</p>
+              <p className="font-bold text-sm text-red-600">-{formatRupiah(exp.amount)}</p>
             </div>
           ))}
         </div>

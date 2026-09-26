@@ -32,7 +32,7 @@ export async function getPeriods(): Promise<Period[]> {
 }
 
 export async function getActivePeriod(): Promise<Period | null> {
-  const q = query(periodsCol, where("status", "==", "active"), orderBy("startDate", "desc"), limit(1));
+  const q = query(periodsCol, where("status", "==", "active"), limit(1));
   const snapshot = await getDocs(q);
 
   if (snapshot.empty) return null;

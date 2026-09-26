@@ -2,7 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { KeyRound } from "lucide-react";
+import { Mail, KeyRound } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -10,7 +11,7 @@ import * as z from "zod";
 import { app } from "@/lib/firebase/client";
 
 const resetSchema = z.object({
-  email: z.string().email({ message: "Email tidak valid" }),
+  email: z.string().email({ message: "Format email tidak valid" }),
 });
 
 type ResetFormValues = z.infer<typeof resetSchema>;
@@ -41,9 +42,7 @@ export default function ForgotPasswordPage() {
         "code" in err &&
         err.code === "auth/user-not-found"
       ) {
-        // For security, it's often better not to reveal if an email exists, but for this app it might be fine.
-        // Or just say "Jika email terdaftar, link akan dikirim."
-        setError("Email tidak ditemukan.");
+        setError("Akun tidak ditemukan.");
       } else {
         setError("Terjadi kesalahan saat mengirim email reset.");
       }
@@ -53,32 +52,43 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+    <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10">
+      {/* Logo */}
+      <div className="text-center mb-10">
+        <Image
+          src="/jimpit-kulon-logo.png"
+          alt="Jimpit Kulon"
+          width={160}
+          height={64}
+          className="object-contain mx-auto mb-3"
+          priority
+        />
+        <p className="text-sm text-foreground/50">Reset password akun Anda</p>
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6 w-full max-w-sm mx-auto">
         <div className="flex justify-center mb-6">
-          <div className="bg-gray-100 p-4 rounded-full text-gray-700">
-            <KeyRound className="w-10 h-10" />
+          <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+            <KeyRound className="w-8 h-8 text-primary" />
           </div>
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl font-bold text-foreground mb-2">
             Lupa Password?
           </h1>
-          <p className="text-gray-500 text-sm">
-            Masukkan email Anda dan kami akan mengirimkan tautan untuk mereset
-            password.
+          <p className="text-foreground/50 text-sm">
+            Masukkan email Anda dan kami akan mengirimkan tautan untuk mereset password.
           </p>
         </div>
 
         {isSent ? (
-          <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 text-sm text-center">
-            Tautan reset password telah dikirim ke email Anda. Silakan periksa
-            kotak masuk atau folder spam.
-            <div className="mt-4">
+          <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 text-sm text-center border border-green-100">
+            Tautan reset password telah dikirim ke email Anda. Silakan periksa kotak masuk atau folder spam.
+            <div className="mt-5">
               <Link
                 href="/login"
-                className="inline-block py-2 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="block w-full py-3.5 bg-primary text-[#000000] rounded-xl font-semibold text-base active:scale-[0.98]"
               >
                 Kembali ke Login
               </Link>
@@ -87,24 +97,27 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm text-center">
+              <div className="bg-red-50 text-red-600 p-3.5 rounded-xl mb-5 border border-red-100 text-sm text-center">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-foreground mb-1.5">
                   Email
                 </label>
-                <input
-                  {...register("email")}
-                  type="email"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                  placeholder="Masukkan email terdaftar"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
+                  <input
+                    {...register("email")}
+                    type="email"
+                    className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-black/10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                    placeholder="nama@email.com"
+                  />
+                </div>
                 {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-xs mt-1.5">
                     {errors.email.message}
                   </p>
                 )}
@@ -113,18 +126,25 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full py-3.5 bg-primary text-[#000000] rounded-xl font-bold text-base mt-2 disabled:opacity-60 active:scale-[0.98]"
               >
-                {isLoading ? "Mengirim..." : "Kirim Tautan Reset"}
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                    Mengirim...
+                  </span>
+                ) : (
+                  "Kirim Tautan Reset"
+                )}
               </button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-6 pt-5 border-t border-black/5 text-center">
               <Link
                 href="/login"
-                className="text-gray-500 font-medium hover:text-gray-900 transition-colors"
+                className="text-sm text-secondary font-semibold hover:underline"
               >
-                &larr; Kembali ke halaman Login
+                &larr; Kembali ke Login
               </Link>
             </div>
           </>
