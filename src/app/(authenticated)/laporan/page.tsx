@@ -128,10 +128,18 @@ export default function LaporanPage() {
   const totalHouses = houses.length;
 
   return (
-    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
-      <h1 className="text-xl font-bold text-foreground mb-6">Laporan</h1>
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Safe area + title */}
+      <div
+        className="px-4 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)' }}
+      >
+        <h1 className="text-2xl font-bold text-foreground">Laporan</h1>
+        <p className="text-sm text-foreground/50 mt-0.5">Data jimpitan & keuangan</p>
+      </div>
 
-      <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6">
+      <div className="px-4 pb-24">
+        <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6">
         <button
           onClick={() => setActiveTab('jimpitan')}
           className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
@@ -270,6 +278,7 @@ export default function LaporanPage() {
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
         </div>
       )}
+      </div>
     </div>
   );
 }

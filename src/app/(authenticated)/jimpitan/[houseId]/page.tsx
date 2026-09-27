@@ -220,16 +220,29 @@ export default function HouseDetailPage() {
   const selectedAmount = selectedPeriodIds.length * 3500;
 
   return (
-    <div className="max-w-lg mx-auto px-4 pb-32 bg-background min-h-screen pt-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center">
+    <div className="flex flex-col min-h-screen bg-background pb-32">
+      {/* Header dengan safe area */}
+      <div
+        className="flex items-center gap-3 px-4 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+      >
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center active:scale-95 flex-shrink-0"
+        >
           <ArrowLeft className="w-4 h-4 text-foreground" />
         </button>
-        <h1 className="text-lg font-bold text-foreground">Detail Rumah</h1>
+        <div>
+          <h1 className="text-lg font-bold text-foreground leading-tight">
+            {house ? house.headOfFamily : 'Detail Rumah'}
+          </h1>
+          <p className="text-xs text-foreground/50">
+            {house ? `Rumah ${house.houseNumber}` : 'Memuat...'}
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="px-4 space-y-4">
         {/* Card Info Rumah */}
         <div className="bg-white rounded-2xl border border-black/5 p-5">
           <div className="flex items-start gap-4">

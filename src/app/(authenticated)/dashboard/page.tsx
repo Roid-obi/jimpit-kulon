@@ -133,136 +133,151 @@ export default function DashboardPage() {
         <p className="mt-4 text-gray-500">Memuat dashboard...</p>
       </div>
     );
-  }
+  }  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* === HERO HEADER — Full bleed dari atas === */}
+      <div
+        className="relative bg-secondary overflow-hidden px-5"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
+          paddingBottom: '32px',
+        }}
+      >
+        {/* Decorative blobs */}
+        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/8 rounded-full pointer-events-none" />
+        <div className="absolute top-16 -left-16 w-40 h-40 bg-white/5 rounded-full pointer-events-none" />
+        <div className="absolute -bottom-8 right-8 w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
 
-  return (
-    <div className="flex flex-col p-4 max-w-lg mx-auto w-full space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-foreground/50 mb-0.5">{todayStr}</p>
-          <h1 className="text-xl font-bold text-foreground">
-            Halo, {userData?.name?.split(' ')[0] || 'Petugas'} 👋
-          </h1>
-        </div>
-      </div>
-
-      {/* Saldo Jimpitan Card */}
-      <div className="relative bg-secondary rounded-3xl p-6 overflow-hidden">
-        {/* decorative circle */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
-        <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full" />
-        <p className="text-[#f7f7f7]/70 text-sm font-medium mb-1">Saldo Dana Jimpitan</p>
-        <h2 className="text-[#f7f7f7] text-3xl font-bold tracking-tight relative z-10">
-          {formatRupiah(balance)}
-        </h2>
-        <p className="text-[#f7f7f7]/50 text-xs mt-2">Diperbarui hari ini</p>
-      </div>
-
-      {/* Income / Expense Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl p-4 border border-black/5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-green-600" />
+        {/* Top row: tanggal + avatar user (link ke profil) */}
+        <div className="flex items-center justify-between mb-5 relative z-10">
+          <p className="text-[#f7f7f7]/50 text-xs">{todayStr}</p>
+          <Link href="/profil">
+            <div className="w-9 h-9 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-center text-[#f7f7f7] font-bold text-sm active:scale-95">
+              {userData?.name?.[0]?.toUpperCase() || '?'}
             </div>
-            <span className="text-xs text-foreground/50 font-medium">Pemasukan</span>
-          </div>
-          <p className="text-base font-bold text-foreground">{formatRupiah(totalIncome)}</p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 border border-black/5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center">
-              <TrendingDown className="w-4 h-4 text-red-500" />
-            </div>
-            <span className="text-xs text-foreground/50 font-medium">Pengeluaran</span>
-          </div>
-          <p className="text-base font-bold text-foreground">{formatRupiah(totalExpense)}</p>
-        </div>
-      </div>
-
-      {/* Status Periode Berjalan */}
-      <div className="bg-white rounded-2xl p-5 border border-black/5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-foreground text-sm">Periode Berjalan</h3>
-          {activePeriod && (
-            <span className="text-xs bg-primary/20 text-foreground font-medium px-2 py-0.5 rounded-full">
-              Aktif
-            </span>
-          )}
-        </div>
-        {activePeriod ? (
-          <>
-            <p className="text-xs text-foreground/50 mb-4">
-              {formatPeriodDate(activePeriod.startDate, activePeriod.endDate)}
-            </p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-foreground/60">{housesLunas} rumah lunas</span>
-                <span className="font-bold text-primary">{Math.round((housesLunas / (totalHouses || 1)) * 100)}%</span>
-              </div>
-              <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min((housesLunas / (totalHouses || 1)) * 100, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-green-600 font-medium">{housesLunas} Lunas</span>
-                <span className="text-orange-500 font-medium">{totalHouses - housesLunas} Belum Bayar</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="py-4 text-center">
-            <p className="text-sm text-foreground/40">Tidak ada periode aktif</p>
-          </div>
-        )}
-      </div>
-
-      {/* Transaksi Terbaru */}
-      <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
-        <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/5">
-          <h3 className="font-semibold text-foreground text-sm">Transaksi Terbaru</h3>
-          <Link href="/keuangan" className="text-xs text-primary font-semibold flex items-center gap-0.5">
-            Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        {recentTransactions.length > 0 ? (
-          <ul>
-            {recentTransactions.map((tx, i) => (
-              <li key={tx.id} className={`px-4 py-3.5 flex items-center justify-between ${
-                i < recentTransactions.length - 1 ? 'border-b border-black/[0.04]' : ''
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                    tx.type === 'income' ? 'bg-green-50' : 'bg-red-50'
-                  }`}>
-                    {tx.type === 'income'
-                      ? <TrendingUp className="w-4 h-4 text-green-600" />
-                      : <TrendingDown className="w-4 h-4 text-red-500" />
-                    }
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground leading-tight">{tx.description}</p>
-                    <p className="text-xs text-foreground/40 mt-0.5">
-                      {tx.createdAt?.toDate?.()?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) || '-'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-sm font-bold ${
-                  tx.type === 'income' ? 'text-green-600' : 'text-red-500'
-                }`}>
-                  {tx.type === 'income' ? '+' : '-'}{formatRupiah(tx.amount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="py-10 text-center">
-            <p className="text-sm text-foreground/40">Belum ada transaksi</p>
+
+        {/* Greeting */}
+        <div className="relative z-10 mb-5">
+          <h1 className="text-[#f7f7f7] text-2xl font-bold mb-0.5">
+            Halo, {userData?.name?.split(' ')[0] || 'Petugas'} 👋
+          </h1>
+          <p className="text-[#f7f7f7]/50 text-sm">Ringkasan keuangan jimpitan</p>
+        </div>
+
+        {/* Saldo card — glassmorphism */}
+        <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/10 relative z-10">
+          <p className="text-[#f7f7f7]/60 text-xs font-medium mb-1">Saldo Dana Jimpitan</p>
+          {isLoading ? (
+            <div className="h-9 w-40 bg-white/20 rounded-lg animate-pulse" />
+          ) : (
+            <p className="text-[#f7f7f7] text-3xl font-bold tracking-tight">{formatRupiah(balance)}</p>
+          )}
+          <div className="flex gap-5 mt-3 pt-3 border-t border-white/10">
+            <div>
+              <p className="text-[#f7f7f7]/40 text-[10px] font-medium mb-0.5">Pemasukan</p>
+              <p className="text-green-300 text-sm font-bold">+{formatRupiah(totalIncome)}</p>
+            </div>
+            <div className="w-px bg-white/10" />
+            <div>
+              <p className="text-[#f7f7f7]/40 text-[10px] font-medium mb-0.5">Pengeluaran</p>
+              <p className="text-red-300 text-sm font-bold">-{formatRupiah(totalExpense)}</p>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* === CONTENT === */}
+      <div className="px-4 pt-4 space-y-4">
+        {/* Periode Berjalan */}
+        <div className="bg-white rounded-2xl p-5 border border-black/5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-foreground text-sm">Periode Berjalan</h3>
+            {activePeriod && (
+              <span className="text-xs bg-primary/20 text-foreground font-semibold px-2 py-0.5 rounded-full">Aktif</span>
+            )}
+          </div>
+          {activePeriod ? (
+            <>
+              <p className="text-xs text-foreground/50 mb-4">
+                {formatPeriodDate(activePeriod.startDate, activePeriod.endDate)}
+              </p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-foreground/60">{housesLunas} dari {totalHouses} rumah</span>
+                  <span className="font-bold text-primary">{Math.round((housesLunas / (totalHouses || 1)) * 100)}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full"
+                    style={{ width: `${Math.min((housesLunas / (totalHouses || 1)) * 100, 100)}%`, transition: 'width 700ms ease' }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-600 font-medium">{housesLunas} Lunas</span>
+                  <span className="text-orange-500 font-medium">{totalHouses - housesLunas} Belum Bayar</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="py-4 text-center">
+              {isLoading
+                ? <div className="w-32 h-4 bg-black/5 rounded animate-pulse mx-auto" />
+                : <p className="text-sm text-foreground/40">Tidak ada periode aktif</p>
+              }
+            </div>
+          )}
+        </div>
+
+        {/* Transaksi Terbaru */}
+        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/5">
+            <h3 className="font-semibold text-foreground text-sm">Transaksi Terbaru</h3>
+            <Link href="/keuangan" className="text-xs text-primary font-semibold flex items-center gap-0.5">
+              Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-12 bg-black/5 rounded-xl animate-pulse" />)}
+            </div>
+          ) : recentTransactions.length > 0 ? (
+            <ul>
+              {recentTransactions.map((tx, i) => (
+                <li key={tx.id} className={`px-4 py-3.5 flex items-center justify-between ${
+                  i < recentTransactions.length - 1 ? 'border-b border-black/[0.04]' : ''
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      tx.type === 'income' ? 'bg-green-50' : 'bg-red-50'
+                    }`}>
+                      {tx.type === 'income'
+                        ? <TrendingUp className="w-4 h-4 text-green-600" />
+                        : <TrendingDown className="w-4 h-4 text-red-500" />
+                      }
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground leading-tight">{tx.description}</p>
+                      <p className="text-xs text-foreground/40 mt-0.5">
+                        {tx.createdAt?.toDate?.()?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-bold ${
+                    tx.type === 'income' ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {tx.type === 'income' ? '+' : '-'}{formatRupiah(tx.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="py-10 text-center">
+              <p className="text-sm text-foreground/40">Belum ada transaksi</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

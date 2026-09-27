@@ -41,11 +41,31 @@ body {
   color: var(--foreground);
 }
 
-/* Smooth transitions untuk interactive elements */
+/* Mobile/CapacitorJS optimizations */
 * {
-  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  -webkit-tap-highlight-color: transparent; /* Hilangkan flash biru saat tap */
+  -webkit-touch-callout: none;
+}
+
+html {
+  overscroll-behavior: none;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+/* Allow text selection in input fields */
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Targeted transitions only */
+button, a, [role="button"] {
+  transition: opacity 150ms ease, transform 150ms ease, background-color 150ms ease;
 }
 
 /* Custom scrollbar */

@@ -66,15 +66,18 @@ export default function ScanQRPage() {
   }, [router]);
 
   return (
-    <div className="flex flex-col p-4 bg-background min-h-screen">
-      <div className="flex items-center mb-6">
+    <div className="flex flex-col bg-background min-h-screen">
+      <div 
+        className="flex items-center px-4 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
+      >
         <button onClick={() => router.push('/jimpitan')} className="text-gray-600 mr-4">
           &larr; Kembali
         </button>
         <h1 className="text-xl font-bold text-foreground">Scan QR Rumah</h1>
       </div>
 
-      <div className="flex flex-col items-center flex-1">
+      <div className="flex flex-col items-center flex-1 px-4">
         <p className="text-gray-600 mb-6 text-center">Arahkan kamera ke QR Code rumah</p>
         
         <div className="w-full max-w-sm bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-8">

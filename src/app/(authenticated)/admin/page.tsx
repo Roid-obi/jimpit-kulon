@@ -226,10 +226,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
-      <h1 className="text-xl font-bold text-foreground mb-6">Panel Admin</h1>
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Safe area + title */}
+      <div
+        className="px-4 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)' }}
+      >
+        <h1 className="text-2xl font-bold text-foreground">Admin</h1>
+        <p className="text-sm text-foreground/50 mt-0.5">Panel administrasi</p>
+      </div>
 
-      {/* Tabs Navigation */}
+      <div className="px-4 pb-24">
+        {/* Tabs Navigation */}
       <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6 overflow-x-auto">
         {[
           { id: 'periode', emoji: '📅', label: 'Periode' },
@@ -463,7 +471,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

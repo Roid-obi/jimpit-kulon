@@ -27,7 +27,8 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.06] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] z-20">
-      <div className="flex justify-around items-end px-2 pt-2 pb-4 max-w-lg mx-auto">
+      <div className="flex justify-around items-end px-2 pt-2 max-w-lg mx-auto"
+           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}>
         {/* Beranda */}
         <Link href="/dashboard" className={`flex flex-col items-center gap-0.5 min-w-[52px] ${
           isActive('/dashboard', true) ? 'text-primary' : 'text-foreground/35'

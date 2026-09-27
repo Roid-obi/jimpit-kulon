@@ -98,13 +98,23 @@ export default function PemasukanPage() {
   const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
 
   return (
-    <div className="max-w-lg mx-auto px-4 pb-24 bg-background min-h-screen pt-4">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center">
+    <div className="flex flex-col min-h-screen bg-background">
+      <div
+        className="flex items-center gap-3 px-4 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+      >
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center active:scale-95 flex-shrink-0"
+        >
           <ArrowLeft className="w-4 h-4 text-foreground" />
         </button>
-        <h1 className="text-lg font-bold text-foreground">Tambah Pemasukan</h1>
+        <div>
+          <h1 className="text-lg font-bold text-foreground leading-tight">Tambah Pemasukan</h1>
+          <p className="text-xs text-foreground/50">Catat pemasukan dana jimpitan</p>
+        </div>
       </div>
+      <div className="px-4 pb-24">
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-black/5 p-5 mb-6 flex flex-col gap-4">
         <div>
@@ -193,6 +203,7 @@ export default function PemasukanPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

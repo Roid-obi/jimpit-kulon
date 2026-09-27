@@ -1,6 +1,5 @@
 import { AuthGuard } from "@/components/guard/AuthGuard";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Navbar } from "@/components/layout/Navbar";
 
 export default function AuthenticatedLayout({
   children,
@@ -9,9 +8,10 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="flex flex-col min-h-screen bg-background pb-20">
-        <Navbar />
-        <main className="flex-1">{children}</main>
+      <div className="flex flex-col min-h-screen bg-background">
+        <main className="flex-1" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
+          {children}
+        </main>
         <BottomNav />
       </div>
     </AuthGuard>
