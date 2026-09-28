@@ -1,6 +1,6 @@
 "use client";
 
-import { getAuth, sendEmailVerification } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,7 +18,15 @@ export default function VerifyEmailPage() {
     setIsSending(true);
     setMessage(null);
     try {
-      await sendEmailVerification(user);
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Gagal mengirim email verifikasi");
+      }
       setMessage(
         "Email verifikasi telah dikirim ulang. Silakan periksa kotak masuk atau folder spam Anda.",
       );

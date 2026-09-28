@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createUserWithEmailAndPassword,
   getAuth,
-  sendEmailVerification,
 } from "firebase/auth";
 import { doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import Image from "next/image";
@@ -70,8 +69,16 @@ export default function RegisterPage() {
         updatedAt: serverTimestamp(),
       });
 
-      // Send verification email
-      await sendEmailVerification(user);
+      // Send custom HTML verification email via backend API
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+
+      if (!res.ok) {
+        console.error("Gagal mengirim email verifikasi");
+      }
 
       router.push("/verify-email");
     } catch (err: unknown) {
