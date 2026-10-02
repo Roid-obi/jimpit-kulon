@@ -8,7 +8,8 @@ import {
 } from 'firebase/firestore';
 import { app } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Home, Users, Settings, Plus, Check, Archive, X } from 'lucide-react';
+import { Calendar, Home, Users, Settings, Plus, Check, Archive, X, QrCode, Download } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 const db = getFirestore(app);
 
@@ -26,6 +27,37 @@ export default function AdminPage() {
   const [houses, setHouses] = useState<any[]>([]);
   const [showHouseForm, setShowHouseForm] = useState(false);
   const [newHouse, setNewHouse] = useState({ houseNumber: '', headOfFamily: '', address: '' });
+  const [selectedHouseForQR, setSelectedHouseForQR] = useState<any>(null);
+
+  const downloadQRCode = () => {
+    const svg = document.getElementById("QRCodeImage");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      const qrSize = 200; // Ukuran sesuai prop size={200}
+      const padding = 24; // Quiet zone
+      canvas.width = qrSize + padding * 2;
+      canvas.height = qrSize + padding * 2;
+      
+      if(ctx) {
+          // Fill background putih
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Gambar QR dengan margin
+          ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      }
+      
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_Rumah_${selectedHouseForQR.houseNumber}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
 
   // Tab Pengguna State
   const [users, setUsers] = useState<any[]>([]);
@@ -367,12 +399,22 @@ export default function AdminPage() {
                     </div>
                     <p className="text-xs font-medium text-foreground/70 mt-0.5">{house.headOfFamily}</p>
                   </div>
-                  <button
-                    onClick={() => handleToggleHouseActive(house.id, house.isActive)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${house.isActive ? 'border-red-200 text-red-600 bg-red-50' : 'border-green-200 text-green-700 bg-green-50'}`}
-                  >
-                    Set {house.isActive ? 'Nonaktif' : 'Aktif'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedHouseForQR(house)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 flex items-center gap-1"
+                      title="Lihat QR Code"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      QR
+                    </button>
+                    <button
+                      onClick={() => handleToggleHouseActive(house.id, house.isActive)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${house.isActive ? 'border-red-200 text-red-600 bg-red-50' : 'border-green-200 text-green-700 bg-green-50'}`}
+                    >
+                      Set {house.isActive ? 'Nonaktif' : 'Aktif'}
+                    </button>
+                  </div>
                 </div>
               ))}
               {houses.length === 0 && (
@@ -468,6 +510,41 @@ export default function AdminPage() {
                 * Catatan: Perubahan nominal akan memengaruhi periode yang dibuat setelahnya.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+      {/* QR Code Modal */}
+      {selectedHouseForQR && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full flex justify-between items-center mb-6">
+              <h3 className="font-bold text-lg text-foreground">QR Code Rumah</h3>
+              <button onClick={() => setSelectedHouseForQR(null)} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="bg-white p-4 rounded-xl border-2 border-gray-100 mb-6 shadow-sm">
+              <QRCode
+                id="QRCodeImage"
+                value={selectedHouseForQR.qrCode}
+                size={200}
+                level="H"
+              />
+            </div>
+            
+            <div className="text-center mb-6">
+              <p className="font-bold text-xl text-foreground mb-1">{selectedHouseForQR.headOfFamily}</p>
+              <p className="text-foreground/60 text-sm">Rumah: {selectedHouseForQR.houseNumber}</p>
+            </div>
+            
+            <button
+              onClick={downloadQRCode}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base shadow-[0_4px_14px_rgba(245,181,83,0.4)] active:scale-[0.98] transition-transform"
+            >
+              <Download className="w-5 h-5" />
+              Download QR Code
+            </button>
           </div>
         </div>
       )}

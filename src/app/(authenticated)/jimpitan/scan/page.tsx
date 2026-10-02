@@ -24,15 +24,21 @@ export default function ScanQRPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (scannerRef.current) {
-      try {
-        const decodedText = await scannerRef.current.scanFile(file, true);
-        processQRCode(decodedText);
-      } catch (err) {
-        console.error("Gagal membaca QR dari gambar", err);
-        setErrorMsg("QR tidak ditemukan di gambar ini");
+    try {
+      if (scannerRef.current && scannerRef.current.getState() === 2) {
+        scannerRef.current.pause();
       }
+      
+      const fileScanner = new Html5Qrcode("qr-reader-file");
+      const decodedText = await fileScanner.scanFile(file, false);
+      processQRCode(decodedText);
+      // Optional: clear fileScanner if needed, though scanFile cleans up mostly.
+      fileScanner.clear();
+    } catch (err) {
+      console.error("Gagal membaca QR dari gambar", err);
+      setErrorMsg("QR tidak ditemukan di gambar ini");
     }
+    
     // reset input
     e.target.value = '';
   };
@@ -111,10 +117,6 @@ export default function ScanQRPage() {
     setErrorMsg('');
     if (scannerRef.current && scannerRef.current.getState() === 3) { // 3 = paused
       scannerRef.current.resume();
-    } else {
-      // In case it wasn't properly paused, we just let it rescan or we'd need to restart.
-      // Usually resume() works if it was paused.
-      scannerRef.current?.resume();
     }
   };
 
@@ -146,6 +148,9 @@ export default function ScanQRPage() {
 
       {/* Video Container */}
       <div id="qr-reader" className="absolute inset-0 w-full h-full object-cover" />
+      
+      {/* Hidden container for file scanning */}
+      <div id="qr-reader-file" className="hidden" />
 
       {/* Overlay with cutout */}
       <div className="absolute inset-0 pointer-events-none flex flex-col z-0">
