@@ -40,7 +40,7 @@ export default function ScanQRPage() {
   const toggleFlashlight = () => {
     if (scannerRef.current && scannerRef.current.getState() === 2) {
       const currentTorchState = isTorchOn;
-      scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !currentTorchState }] })
+      scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !currentTorchState } as any] })
         .then(() => setIsTorchOn(!currentTorchState))
         .catch(err => {
           console.error("Gagal menyalakan senter", err);
