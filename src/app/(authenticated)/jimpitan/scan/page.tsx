@@ -20,6 +20,20 @@ export default function ScanQRPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isTorchOn, setIsTorchOn] = useState(false);
 
+  const handleNavigate = async (path: string) => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState();
+        if (state === 2 || state === 3) { // SCANNING or PAUSED
+          await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.error("Error stopping scanner during navigation", err);
+      }
+    }
+    router.push(path);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -192,7 +206,7 @@ export default function ScanQRPage() {
         style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
       >
         <button 
-          onClick={() => router.push('/jimpitan')} 
+          onClick={() => handleNavigate('/jimpitan')} 
           className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 text-white"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -220,13 +234,13 @@ export default function ScanQRPage() {
               <ImagePlus className="w-5 h-5 text-primary" />
               Upload
             </button>
-            <Link 
-              href="/jimpitan" 
+            <button 
+              onClick={() => handleNavigate('/jimpitan')}
               className="flex-1 flex items-center justify-center gap-2 bg-[#2a2a2a] border border-white/10 text-white py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform shadow-lg"
             >
               <Search className="w-5 h-5 text-primary" />
               Manual
-            </Link>
+            </button>
           </div>
           <input 
             type="file" 
@@ -275,7 +289,7 @@ export default function ScanQRPage() {
           
           <div className="flex flex-col gap-3">
             <button 
-              onClick={() => router.push(`/jimpitan/${house.id}`)}
+              onClick={() => handleNavigate(`/jimpitan/${house.id}`)}
               className="w-full bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base active:scale-[0.98] transition-transform shadow-[0_4px_14px_rgba(245,181,83,0.4)]"
             >
               Lanjutkan
