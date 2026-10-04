@@ -1,12 +1,11 @@
 'use client';
 
 import { Html5Qrcode } from 'html5-qrcode';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
 import { app } from '@/lib/firebase/client';
 import { ArrowLeft, CheckCircle2, Search, X, Flashlight, FlashlightOff, ImagePlus } from 'lucide-react';
-import Link from 'next/link';
 import type { House } from '@/types/jimpitan';
 
 const db = getFirestore(app);
@@ -16,23 +15,42 @@ export default function ScanQRPage() {
   const [house, setHouse] = useState<House | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isTorchOn, setIsTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
 
-  const handleNavigate = async (path: string) => {
-    if (scannerRef.current) {
-      try {
-        const state = scannerRef.current.getState();
-        if (state === 2 || state === 3) { // SCANNING or PAUSED
-          await scannerRef.current.stop();
-        }
-      } catch (err) {
-        console.error("Error stopping scanner during navigation", err);
+  // Reliably stop all camera tracks using the stored stream ref
+  const stopAllTracks = useCallback(() => {
+    // First, neutralize onabort handlers on all video elements
+    // html5-qrcode sets onabort which throws errors when tracks are stopped
+    const videos = document.querySelectorAll('#qr-reader video');
+    videos.forEach(v => {
+      const video = v as HTMLVideoElement;
+      video.onabort = null;
+      video.onerror = null;
+      video.onended = null;
+      // Remove the video src to prevent play() interruption errors
+      if (video.srcObject) {
+        (video.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+        video.srcObject = null;
       }
+      video.remove();
+    });
+    
+    // Also stop tracks from the stored stream ref
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
+  }, []);
+
+  const handleNavigate = useCallback((path: string) => {
+    stopAllTracks();
+    scannerRef.current = null;
     router.push(path);
-  };
+  }, [stopAllTracks, router]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,7 +64,6 @@ export default function ScanQRPage() {
       const fileScanner = new Html5Qrcode("qr-reader-file");
       const decodedText = await fileScanner.scanFile(file, false);
       processQRCode(decodedText);
-      // Optional: clear fileScanner if needed, though scanFile cleans up mostly.
       fileScanner.clear();
     } catch (err) {
       console.error("Gagal membaca QR dari gambar", err);
@@ -57,24 +74,32 @@ export default function ScanQRPage() {
     e.target.value = '';
   };
 
-  const toggleFlashlight = () => {
-    if (scannerRef.current && scannerRef.current.getState() === 2) {
-      const currentTorchState = isTorchOn;
-      scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !currentTorchState } as any] })
-        .then(() => setIsTorchOn(!currentTorchState))
-        .catch(err => {
-          console.error("Gagal menyalakan senter", err);
-          alert("Senter tidak didukung pada perangkat ini.");
-        });
+  const toggleFlashlight = useCallback(() => {
+    if (!streamRef.current) return;
+    
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (!videoTrack) return;
+
+    const newTorchState = !isTorchOn;
+    try {
+      videoTrack.applyConstraints({
+        advanced: [{ torch: newTorchState } as any]
+      }).then(() => {
+        setIsTorchOn(newTorchState);
+      }).catch(() => {
+        // Torch not supported, silently ignore
+      });
+    } catch {
+      // Torch not supported
     }
-  };
+  }, [isTorchOn]);
 
   const processQRCode = async (decodedText: string) => {
     if (isProcessing) return;
     setIsProcessing(true);
     
     try {
-      if (scannerRef.current && scannerRef.current.getState() === 2) { // 2 = scanning
+      if (scannerRef.current && scannerRef.current.getState() === 2) {
         scannerRef.current.pause();
       }
       
@@ -96,14 +121,26 @@ export default function ScanQRPage() {
   };
 
   useEffect(() => {
+    // Suppress AbortError overlay in dev mode
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (event.reason?.name === 'AbortError' || event.reason?.message?.includes('AbortError')) {
+      if (event.reason?.name === 'AbortError' 
+        || event.reason?.message?.includes('AbortError')
+        || event.reason?.name === 'OverconstrainedError'
+        || event.reason?.message?.includes('Unsupported constraint')) {
+        event.preventDefault();
+      }
+    };
+    // Suppress uncaught errors from media
+    const handleError = (event: ErrorEvent) => {
+      if (event.message?.includes('AbortError') 
+        || event.message?.includes('Unsupported constraint')
+        || event.message?.includes('play()')) {
         event.preventDefault();
       }
     };
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
     
-    // Create scanner instance
     const html5QrCode = new Html5Qrcode("qr-reader");
     scannerRef.current = html5QrCode;
 
@@ -113,10 +150,22 @@ export default function ScanQRPage() {
           { facingMode: "environment" },
           { fps: 10 },
           (decodedText) => processQRCode(decodedText),
-          (errorMessage) => {
-            // parse error, ignore
+          () => { /* scan error, ignore */ }
+        ).then(() => {
+          // After starting, grab the video element's stream and store it
+          const videoEl = document.querySelector('#qr-reader video') as HTMLVideoElement | null;
+          if (videoEl?.srcObject) {
+            streamRef.current = videoEl.srcObject as MediaStream;
+            // Check torch support
+            const track = streamRef.current.getVideoTracks()[0];
+            if (track) {
+              const capabilities = track.getCapabilities?.() as any;
+              if (capabilities?.torch) {
+                setTorchSupported(true);
+              }
+            }
           }
-        ).catch(err => {
+        }).catch(err => {
           console.error("Error starting scanner", err);
           setErrorMsg("Gagal mengakses kamera");
         });
@@ -128,17 +177,23 @@ export default function ScanQRPage() {
 
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      if (html5QrCode.isScanning) {
-        html5QrCode.stop().catch(() => {});
-      }
+      window.removeEventListener('error', handleError);
+      stopAllTracks();
+      scannerRef.current = null;
     };
   }, []);
 
   const handleScanAgain = () => {
     setHouse(null);
     setErrorMsg('');
-    if (scannerRef.current && scannerRef.current.getState() === 3) { // 3 = paused
-      scannerRef.current.resume();
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.getState() === 3) { // 3 = paused
+          scannerRef.current.resume();
+        }
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -219,12 +274,14 @@ export default function ScanQRPage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <button 
-          onClick={toggleFlashlight}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 text-white"
-        >
-          {isTorchOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
-        </button>
+        {torchSupported && (
+          <button 
+            onClick={toggleFlashlight}
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 text-white"
+          >
+            {isTorchOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
+          </button>
+        )}
       </div>
 
       {/* Bottom Container (Cari Manual) */}
