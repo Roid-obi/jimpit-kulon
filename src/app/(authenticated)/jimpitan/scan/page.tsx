@@ -96,6 +96,13 @@ export default function ScanQRPage() {
   };
 
   useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason?.name === 'AbortError' || event.reason?.message?.includes('AbortError')) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
     // Create scanner instance
     const html5QrCode = new Html5Qrcode("qr-reader");
     scannerRef.current = html5QrCode;
@@ -120,8 +127,9 @@ export default function ScanQRPage() {
     });
 
     return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       if (html5QrCode.isScanning) {
-        html5QrCode.stop().catch(console.error);
+        html5QrCode.stop().catch(() => {});
       }
     };
   }, []);
