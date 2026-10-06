@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { app } from '@/lib/firebase/client';
-import { LogOut, Key, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { LogOut, Key, CheckCircle2, XCircle, Shield, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function ProfilPage() {
@@ -114,6 +115,14 @@ export default function ProfilPage() {
 
         {/* Aksi */}
         <div className="space-y-2">
+          {userData.role === 'admin' && (
+            <Link
+              href="/admin"
+              className="w-full py-3.5 rounded-xl bg-primary text-[#000000] font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98]"
+            >
+              <Settings className="w-4 h-4" /> Panel Admin
+            </Link>
+          )}
           <button
             onClick={handleResetPassword}
             disabled={loading}

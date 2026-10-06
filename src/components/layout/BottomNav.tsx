@@ -1,5 +1,5 @@
 "use client";
-import { Home, ClipboardList, QrCode, Wallet, Settings, UserCircle } from "lucide-react";
+import { Home, ClipboardList, QrCode, Wallet, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,12 +16,7 @@ export function BottomNav() {
     { href: '/jimpitan', icon: ClipboardList, label: 'Jimpitan', exact: false, excludeStart: '/jimpitan/scan' },
   ];
 
-  const rightItems = [
-    { href: '/keuangan', icon: Wallet, label: 'Keuangan' },
-    userData?.role === 'admin'
-      ? { href: '/admin', icon: Settings, label: 'Admin' }
-      : { href: '/profil', icon: UserCircle, label: 'Profil' },
-  ];
+
 
   const isJimpitanActive = pathname?.startsWith('/jimpitan') && !pathname?.startsWith('/jimpitan/scan');
 
@@ -65,22 +60,13 @@ export function BottomNav() {
           <span className="text-[10px] font-medium">Keuangan</span>
         </Link>
 
-        {/* Admin / Profil */}
-        {userData?.role === 'admin' ? (
-          <Link href="/admin" className={`flex flex-col items-center gap-0.5 min-w-[52px] ${
-            isActive('/admin') ? 'text-primary' : 'text-foreground/35'
-          }`}>
-            <Settings className="w-6 h-6" strokeWidth={isActive('/admin') ? 2.5 : 1.8} />
-            <span className="text-[10px] font-medium">Admin</span>
-          </Link>
-        ) : (
-          <Link href="/profil" className={`flex flex-col items-center gap-0.5 min-w-[52px] ${
-            isActive('/profil') ? 'text-primary' : 'text-foreground/35'
-          }`}>
-            <UserCircle className="w-6 h-6" strokeWidth={isActive('/profil') ? 2.5 : 1.8} />
-            <span className="text-[10px] font-medium">Profil</span>
-          </Link>
-        )}
+        {/* Profil */}
+        <Link href="/profil" className={`flex flex-col items-center gap-0.5 min-w-[52px] ${
+          isActive('/profil') ? 'text-primary' : 'text-foreground/35'
+        }`}>
+          <UserCircle className="w-6 h-6" strokeWidth={isActive('/profil') ? 2.5 : 1.8} />
+          <span className="text-[10px] font-medium">Profil</span>
+        </Link>
       </div>
     </div>
   );
