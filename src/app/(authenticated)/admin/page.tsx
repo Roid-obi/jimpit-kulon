@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   collection, doc, getDocs, getFirestore,
   orderBy, query, serverTimestamp, Timestamp,
-  updateDoc, addDoc, where
+  updateDoc, addDoc, where, writeBatch
 } from 'firebase/firestore';
 import { app } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -151,27 +151,96 @@ export default function AdminPage() {
 
   // Periode Actions
   const handleCreatePeriod = async () => {
-    if (!window.confirm("Buat periode baru (7 hari ke depan)?")) return;
+    if (!window.confirm("Buat periode untuk 6 Bulan Ke Depan (24 Minggu)?")) return;
     setIsCreatingPeriod(true);
     try {
-      const latestPeriodNum = periods.length > 0 ? Math.max(...periods.map((p) => p.periodNumber || 0)) : 0;
-      const now = new Date();
-      const startDate = Timestamp.fromDate(now);
-      const endDateDate = new Date(now);
-      endDateDate.setDate(endDateDate.getDate() + 7);
-      const endDate = Timestamp.fromDate(endDateDate);
+      let latestPeriodNum = periods.length > 0 ? Math.max(...periods.map((p) => p.periodNumber || 0)) : 0;
+      
+      // Determine the start date for the new periods
+      let baseDate = new Date();
+      if (periods.length > 0) {
+        // Find the latest period to continue from its end date
+        const latestPeriod = periods.reduce((prev, current) => (prev.periodNumber > current.periodNumber) ? prev : current);
+        if (latestPeriod && latestPeriod.endDate) {
+          baseDate = latestPeriod.endDate.toDate();
+        }
+      }
 
-      await addDoc(collection(db, 'periods'), {
-        periodNumber: latestPeriodNum + 1,
-        startDate,
-        endDate,
-        amount: 3500,
-        status: "active",
-      });
+      for (let i = 0; i < 24; i++) {
+        const startDateDate = new Date(baseDate);
+        const endDateDate = new Date(baseDate);
+        endDateDate.setDate(endDateDate.getDate() + 7);
+        
+        await addDoc(collection(db, 'periods'), {
+          periodNumber: latestPeriodNum + 1,
+          startDate: Timestamp.fromDate(startDateDate),
+          endDate: Timestamp.fromDate(endDateDate),
+          amount: 3500,
+          status: "active", // We keep this for backward compatibility in db schema, though we will calculate status on the fly in UI
+        });
+        
+        baseDate = endDateDate;
+        latestPeriodNum++;
+      }
       await fetchPeriods();
+      alert('24 Periode berhasil dibuat!');
     } catch (err) {
       console.error(err);
       setError('Gagal membuat periode');
+    } finally {
+      setIsCreatingPeriod(false);
+    }
+  };
+
+  const handleSeedPeriodsRealtime = async () => {
+    if (!window.confirm("AWAS! Ini akan MENGHAPUS SEMUA periode & pembayaran yang ada, lalu membuat 30 periode dummy baru (10 minggu lalu - 20 minggu ke depan) sesuai waktu hari ini. Lanjut?")) return;
+    setIsCreatingPeriod(true);
+    try {
+      // 1. Delete all payments
+      const paymentsSnap = await getDocs(collection(db, 'payments'));
+      const batch1 = writeBatch(db);
+      paymentsSnap.docs.forEach((d) => batch1.delete(d.ref));
+      await batch1.commit();
+
+      // 2. Delete all periods
+      const periodsSnap = await getDocs(collection(db, 'periods'));
+      const batch2 = writeBatch(db);
+      periodsSnap.docs.forEach((d) => batch2.delete(d.ref));
+      await batch2.commit();
+
+      // 3. Create 30 periods (10 in the past, 20 in the future)
+      const batch3 = writeBatch(db);
+      const now = new Date(); // Real current time
+      
+      // Let's set period 1 start date to 10 weeks ago
+      let baseDate = new Date(now);
+      // To ensure 'now' falls nicely in the middle of current period (which would be period 11)
+      baseDate.setDate(now.getDate() - (10 * 7) - 3); 
+      baseDate.setHours(0, 0, 0, 0);
+
+      for (let i = 1; i <= 30; i++) {
+        const startDate = new Date(baseDate);
+        const endDate = new Date(baseDate);
+        endDate.setDate(endDate.getDate() + 7);
+        
+        const periodRef = doc(collection(db, 'periods'));
+        batch3.set(periodRef, {
+          periodNumber: i,
+          startDate: Timestamp.fromDate(startDate),
+          endDate: Timestamp.fromDate(endDate),
+          amount: 3500,
+          status: "active",
+        });
+        
+        baseDate = endDate;
+      }
+      
+      await batch3.commit();
+      await fetchPeriods();
+      alert('Data periode berhasil di-reset dan disesuaikan dengan waktu nyata!');
+    } catch (err) {
+      console.error(err);
+      setError('Gagal reset periode dummy');
     } finally {
       setIsCreatingPeriod(false);
     }
@@ -303,14 +372,23 @@ export default function AdminPage() {
             <h2 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
               Daftar Periode
             </h2>
-            <button
-              onClick={handleCreatePeriod}
-              disabled={isCreatingPeriod}
-              className="flex items-center gap-1.5 bg-primary text-[#000000] px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{isCreatingPeriod ? 'Membuat...' : 'Buat Periode'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleSeedPeriodsRealtime}
+                disabled={isCreatingPeriod}
+                className="flex items-center justify-center whitespace-nowrap gap-1.5 bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                <span>Reset Dummy</span>
+              </button>
+              <button
+                onClick={handleCreatePeriod}
+                disabled={isCreatingPeriod}
+                className="flex items-center justify-center whitespace-nowrap gap-1.5 bg-primary text-[#000000] px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{isCreatingPeriod ? 'Membuat...' : 'Buat 24 Periode'}</span>
+              </button>
+            </div>
           </div>
           {loading ? (
             <div className="p-8 text-center text-sm text-foreground/50">Memuat...</div>

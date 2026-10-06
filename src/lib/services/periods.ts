@@ -32,15 +32,27 @@ export async function getPeriods(): Promise<Period[]> {
 }
 
 export async function getActivePeriod(): Promise<Period | null> {
-  const q = query(periodsCol, where("status", "==", "active"), limit(1));
+  const q = query(periodsCol);
   const snapshot = await getDocs(q);
 
   if (snapshot.empty) return null;
 
-  return {
-    id: snapshot.docs[0].id,
-    ...snapshot.docs[0].data(),
-  } as Period;
+  const now = new Date();
+  for (const doc of snapshot.docs) {
+    const data = doc.data() as Period;
+    if (data.status !== 'archived') {
+      const start = data.startDate.toDate();
+      const end = data.endDate.toDate();
+      if (start <= now && end >= now) {
+        return {
+          id: doc.id,
+          ...data,
+        } as Period;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function addPeriod(

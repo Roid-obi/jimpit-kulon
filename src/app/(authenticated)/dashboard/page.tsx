@@ -75,17 +75,28 @@ export default function DashboardPage() {
         setBalance(tIncome - tExpense);
         setRecentTransactions(txs);
 
-        // 2. Fetch Active Period
+        // 2. Fetch Active Period based on real-time
         const periodQ = query(
-          collection(db, "periods"),
-          where("status", "==", "active"),
-          limit(1)
+          collection(db, "periods")
         );
         const periodSnapshot = await getDocs(periodQ);
-        let currentPeriod = null;
         
-        if (!periodSnapshot.empty) {
-          currentPeriod = { id: periodSnapshot.docs[0].id, ...periodSnapshot.docs[0].data() };
+        let currentPeriod = null;
+        const now = new Date();
+        
+        periodSnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.status !== 'archived') {
+            const start = data.startDate.toDate();
+            const end = data.endDate.toDate();
+            // find the one that overlaps with 'now'
+            if (start <= now && end >= now) {
+              currentPeriod = { id: doc.id, ...data };
+            }
+          }
+        });
+        
+        if (currentPeriod) {
           setActivePeriod(currentPeriod);
         }
 

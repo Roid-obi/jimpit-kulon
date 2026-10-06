@@ -63,8 +63,20 @@ export default function HouseDetailPage() {
   const isPaymentDone = (periodId: string) =>
     payments.some(p => p.periodId === periodId && p.status === 'paid');
 
-  const isArrear = (period: Period) =>
-    period.status === 'archived' && !isPaymentDone(period.id);
+  const isActivePeriod = (period: Period) => {
+    const now = new Date();
+    return period.startDate.toDate() <= now && period.endDate.toDate() >= now;
+  };
+
+  const isUpcomingPeriod = (period: Period) => {
+    const now = new Date();
+    return period.startDate.toDate() > now;
+  };
+
+  const isArrear = (period: Period) => {
+    const now = new Date();
+    return period.endDate.toDate() < now && !isPaymentDone(period.id);
+  };
 
   const arrearPeriods = periods.filter(p => isArrear(p));
   const totalArrearAmount = arrearPeriods.length * 3500;
@@ -275,7 +287,8 @@ export default function HouseDetailPage() {
             {periods.map(period => {
               const paid = isPaymentDone(period.id);
               const arrear = isArrear(period);
-              const active = period.status === 'active';
+              const active = isActivePeriod(period);
+              const upcoming = isUpcomingPeriod(period);
               const selected = selectedPeriodIds.includes(period.id);
 
               return (
@@ -310,7 +323,7 @@ export default function HouseDetailPage() {
                       active ? 'text-primary' :
                       'text-foreground/30'
                     }`}>
-                      {paid ? 'Lunas' : arrear ? 'Tunggakan' : active ? 'Periode Berjalan' : 'Selesai'}
+                      {paid ? 'Lunas' : arrear ? 'Tunggakan' : active ? 'Periode Berjalan' : upcoming ? 'Mendatang' : 'Selesai'}
                     </p>
                   </div>
                   
