@@ -81,7 +81,7 @@ export default function DashboardPage() {
         );
         const periodSnapshot = await getDocs(periodQ);
         
-        let currentPeriod = null;
+        let currentPeriod: any = null;
         const now = new Date();
         
         periodSnapshot.docs.forEach((doc) => {

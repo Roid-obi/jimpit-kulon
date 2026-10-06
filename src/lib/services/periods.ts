@@ -25,8 +25,8 @@ export async function getPeriods(): Promise<Period[]> {
   return snapshot.docs.map(
     (doc) =>
       ({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,
       }) as Period,
   );
 }
@@ -45,8 +45,8 @@ export async function getActivePeriod(): Promise<Period | null> {
       const end = data.endDate.toDate();
       if (start <= now && end >= now) {
         return {
-          id: doc.id,
           ...data,
+          id: doc.id,
         } as Period;
       }
     }
