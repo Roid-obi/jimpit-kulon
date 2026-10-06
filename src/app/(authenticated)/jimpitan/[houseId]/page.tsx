@@ -61,6 +61,17 @@ export default function HouseDetailPage() {
   };
 
   useEffect(() => {
+    if (!isLoading && periods.length > 0) {
+      setTimeout(() => {
+        const activeEl = document.getElementById('active-period');
+        if (activeEl) {
+          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [isLoading, periods.length]);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (!houseId) return;
       setIsLoading(true);
@@ -334,23 +345,29 @@ export default function HouseDetailPage() {
               return (
                 <button 
                   key={period.id} 
+                  id={active ? 'active-period' : undefined}
                   onClick={() => togglePeriod(period)} 
-                  className="w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-black/5 transition-colors"
+                  className={`w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-black/5 transition-colors ${
+                    active ? 'bg-primary/5' : ''
+                  }`}
                 >
                   {/* Status indicator */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative ${
                     paid ? 'bg-green-100' :
                     arrear ? 'bg-orange-100' :
                     active ? 'bg-primary/20' :
                     'bg-black/5'
                   }`}>
+                    {active && (
+                      <div className="absolute inset-0 rounded-xl border-2 border-primary animate-ping opacity-75"></div>
+                    )}
                     {paid
-                      ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      ? <CheckCircle2 className="w-5 h-5 text-green-600 relative z-10" />
                       : arrear
-                      ? <AlertCircle className="w-5 h-5 text-orange-500" />
+                      ? <AlertCircle className="w-5 h-5 text-orange-500 relative z-10" />
                       : active
-                      ? <Circle className="w-5 h-5 text-primary" fill="currentColor" />
-                      : <Circle className="w-5 h-5 text-foreground/20" />
+                      ? <Circle className="w-5 h-5 text-primary relative z-10" fill="currentColor" />
+                      : <Circle className="w-5 h-5 text-foreground/20 relative z-10" />
                     }
                   </div>
                   
