@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, CheckCircle2, AlertCircle, Circle, Home, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Circle, Home, Check, QrCode, Download, X } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +27,38 @@ export default function HouseDetailPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState<{show: boolean, payment: Payment | null, period: Period | null}>({show: false, payment: null, period: null});
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  const downloadQRCode = () => {
+    if (!house) return;
+    const svg = document.getElementById("QRCodeImage");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      const qrSize = 200; // Ukuran sesuai prop size={200}
+      const padding = 24; // Quiet zone
+      canvas.width = qrSize + padding * 2;
+      canvas.height = qrSize + padding * 2;
+      
+      if(ctx) {
+          // Fill background putih
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Gambar QR dengan margin
+          ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      }
+      
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_Rumah_${house.houseNumber}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -266,6 +299,13 @@ export default function HouseDetailPage() {
               <p className="text-sm font-semibold text-foreground/50">Rumah {house.houseNumber}</p>
               {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
             </div>
+            <button
+              onClick={() => setShowQRModal(true)}
+              className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:bg-primary/20 flex-shrink-0"
+              aria-label="Tampilkan QR"
+            >
+              <QrCode className="w-6 h-6" />
+            </button>
           </div>
           
           {arrearPeriods.length > 0 && (
@@ -445,6 +485,45 @@ export default function HouseDetailPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR Code */}
+      {showQRModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-foreground">QR Code Rumah</h3>
+              <button 
+                onClick={() => setShowQRModal(false)}
+                className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-foreground/50 active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex justify-center mb-6 p-4 bg-white rounded-2xl border-2 border-black/5 shadow-sm">
+              <QRCode 
+                id="QRCodeImage"
+                value={house.qrCode || house.id} 
+                size={200}
+                level="H"
+              />
+            </div>
+            
+            <div className="text-center mb-6">
+              <p className="font-bold text-xl text-foreground mb-1">{house.headOfFamily}</p>
+              <p className="text-foreground/60 text-sm">Rumah: {house.houseNumber}</p>
+            </div>
+            
+            <button 
+              onClick={downloadQRCode}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base shadow-[0_4px_14px_rgba(245,181,83,0.4)] active:scale-[0.98] transition-transform"
+            >
+              <Download className="w-5 h-5" />
+              Download QR Code
+            </button>
           </div>
         </div>
       )}
