@@ -277,57 +277,63 @@ export default function HouseDetailPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-32">
-      {/* Header dengan safe area */}
-      <div
-        className="flex items-center gap-3 px-4 pb-4"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
-      >
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center active:scale-95 flex-shrink-0"
+      {/* Sticky Top Section */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 border-b border-black/5 shadow-sm">
+        {/* Header dengan safe area */}
+        <div
+          className="flex items-center gap-3 px-4 pb-4"
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
         >
-          <ArrowLeft className="w-4 h-4 text-foreground" />
-        </button>
-        <div>
-          <h1 className="text-lg font-bold text-foreground leading-tight">
-            {house ? house.headOfFamily : 'Detail Rumah'}
-          </h1>
-          <p className="text-xs text-foreground/50">
-            {house ? `Rumah ${house.houseNumber}` : 'Memuat...'}
-          </p>
+          <button
+            onClick={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center active:scale-95 flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <div>
+            <h1 className="text-lg font-bold text-foreground leading-tight">
+              {house ? house.headOfFamily : 'Detail Rumah'}
+            </h1>
+            <p className="text-xs text-foreground/50">
+              {house ? `Rumah ${house.houseNumber}` : 'Memuat...'}
+            </p>
+          </div>
+        </div>
+
+        <div className="px-4">
+          {/* Card Info Rumah */}
+          <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
+                <Home className="w-7 h-7 text-secondary" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-foreground">{house.headOfFamily}</h2>
+                <p className="text-sm font-semibold text-foreground/50">Rumah {house.houseNumber}</p>
+                {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
+              </div>
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:bg-primary/20 flex-shrink-0"
+                aria-label="Tampilkan QR"
+              >
+                <QrCode className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {arrearPeriods.length > 0 && (
+              <div className="mt-4 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3.5 py-2.5">
+                <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                <p className="text-xs font-bold text-orange-700">
+                  {arrearPeriods.length} Periode Tunggakan &bull; Rp {formatRupiah(totalArrearAmount)}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="px-4 space-y-4">
-        {/* Card Info Rumah */}
-        <div className="bg-white rounded-2xl border border-black/5 p-5">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
-              <Home className="w-7 h-7 text-secondary" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-bold text-foreground">{house.headOfFamily}</h2>
-              <p className="text-sm font-semibold text-foreground/50">Rumah {house.houseNumber}</p>
-              {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
-            </div>
-            <button
-              onClick={() => setShowQRModal(true)}
-              className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:bg-primary/20 flex-shrink-0"
-              aria-label="Tampilkan QR"
-            >
-              <QrCode className="w-6 h-6" />
-            </button>
-          </div>
-          
-          {arrearPeriods.length > 0 && (
-            <div className="mt-4 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3.5 py-2.5">
-              <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-              <p className="text-xs font-bold text-orange-700">
-                {arrearPeriods.length} Periode Tunggakan &bull; Rp {formatRupiah(totalArrearAmount)}
-              </p>
-            </div>
-          )}
-        </div>
+      <div className="px-4 mt-4">
 
         {/* Daftar Periode Jimpitan */}
         <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
