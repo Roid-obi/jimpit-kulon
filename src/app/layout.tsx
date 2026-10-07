@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Jimpit Kulon",
   description: "Aplikasi Jimpit Kulon",
   icons: {
-    icon: "/jimpit-kulon-logo.svg",
+    icon: "/jimpit-kulon-logo.png",
   },
 };
 
