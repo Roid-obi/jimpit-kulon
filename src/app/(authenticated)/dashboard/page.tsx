@@ -185,17 +185,6 @@ export default function DashboardPage() {
           ) : (
             <p className="text-[#f7f7f7] text-3xl font-bold tracking-tight">{formatRupiah(balance)}</p>
           )}
-          <div className="flex gap-5 mt-3 pt-3 border-t border-white/10">
-            <div>
-              <p className="text-[#f7f7f7]/40 text-[10px] font-medium mb-0.5">Pemasukan</p>
-              <p className="text-green-300 text-sm font-bold">+{formatRupiah(totalIncome)}</p>
-            </div>
-            <div className="w-px bg-white/10" />
-            <div>
-              <p className="text-[#f7f7f7]/40 text-[10px] font-medium mb-0.5">Pengeluaran</p>
-              <p className="text-red-300 text-sm font-bold">-{formatRupiah(totalExpense)}</p>
-            </div>
-          </div>
         </div>
       </div>
 

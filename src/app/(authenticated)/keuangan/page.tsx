@@ -132,35 +132,72 @@ export default function KeuanganPage() {
                 <p className="text-sm text-foreground/40">Belum ada transaksi</p>
               </div>
             ) : (
-              <ul>
-                {filteredTransactions.map((t, i) => (
-                  <li key={t.id} className={`px-4 py-3.5 flex items-center justify-between ${
-                    i < filteredTransactions.length - 1 ? 'border-b border-black/[0.04]' : ''
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        t.type === 'income' ? 'bg-green-50' : 'bg-red-50'
-                      }`}>
-                        {t.type === 'income'
-                          ? <TrendingUp className="w-4 h-4 text-green-600" />
-                          : <TrendingDown className="w-4 h-4 text-red-500" />
-                        }
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground text-sm truncate">{t.description || t.category}</p>
-                        <p className="text-xs text-foreground/40 mt-0.5">
-                          {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
-                        </p>
-                      </div>
+              <div>
+                {filteredTransactions.reduce((acc, t) => {
+                  let dateStr = 'Lainnya';
+                  if (t.createdAt?.toDate) {
+                    const date = t.createdAt.toDate();
+                    const monthYear = date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    const now = new Date();
+                    if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                      dateStr = 'Bulan Ini';
+                    } else {
+                      dateStr = monthYear;
+                    }
+                  }
+                  let group = acc.find(g => g.title === dateStr);
+                  if (!group) {
+                    group = { title: dateStr, items: [] };
+                    acc.push(group);
+                  }
+                  group.items.push(t);
+                  return acc;
+                }, [] as { title: string, items: typeof filteredTransactions }[]).map((group, groupIdx) => {
+                  const groupIncome = group.items.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                  const groupExpense = group.items.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                  const netAmount = groupIncome - groupExpense;
+                  
+                  return (
+                  <div key={group.title}>
+                    <div className="px-4 pt-6 first:pt-4 pb-3 bg-white flex justify-between items-center">
+                      <h2 className="text-lg font-bold text-foreground">{group.title}</h2>
+                      <p className="text-base font-medium text-primary">
+                        {netAmount >= 0 ? '+' : '-'}{formatRupiah(Math.abs(netAmount))}
+                      </p>
                     </div>
-                    <p className={`font-bold text-sm ml-2 flex-shrink-0 ${
-                      t.type === 'income' ? 'text-green-600' : 'text-red-500'
-                    }`}>
-                      {t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                    <ul>
+                      {group.items.map((t, i) => (
+                        <li key={t.id} className={`px-4 py-3.5 flex items-center justify-between ${
+                          i < group.items.length - 1 ? 'border-b border-black/[0.04]' : ''
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              t.type === 'income' ? 'bg-green-50' : 'bg-red-50'
+                            }`}>
+                              {t.type === 'income'
+                                ? <TrendingUp className="w-4 h-4 text-green-600" />
+                                : <TrendingDown className="w-4 h-4 text-red-500" />
+                              }
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-foreground text-sm truncate">{t.description || t.category}</p>
+                              <p className="text-xs text-foreground/40 mt-0.5">
+                                {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                              </p>
+                            </div>
+                          </div>
+                          <p className={`font-bold text-sm ml-2 flex-shrink-0 ${
+                            t.type === 'income' ? 'text-green-600' : 'text-red-500'
+                          }`}>
+                            {t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+                })}
+              </div>
             )}
           </div>
         )}
