@@ -60,20 +60,60 @@ export default function DashboardPage() {
         let tExpense = 0;
         const txs: any[] = [];
         
+        const rawData: any[] = [];
         txSnapshot.docs.forEach((doc) => {
           const d = doc.data();
           if (d.type === "income") tIncome += d.amount;
           else if (d.type === "expense") tExpense += d.amount;
+          rawData.push({ id: doc.id, ...d });
+        });
+
+        const groupedData: any[] = [];
+        const jimpitanByDay: Record<string, { ids: string[], amount: number, count: number, date: any }> = {};
+
+        rawData.forEach(t => {
+          const isJimpitanIncome = (t.category && t.category.toLowerCase().includes('jimpitan') || 
+                                   t.category && t.category.toLowerCase() === 'payment' || 
+                                   t.description && t.description.toLowerCase().includes('jimpitan')) && t.type === 'income';
+          const isCancellation = t.category && t.category.toLowerCase() === 'cancellation';
           
-          if (txs.length < 5) {
-            txs.push({ id: doc.id, ...d });
+          if (isJimpitanIncome || isCancellation) {
+            const dateStr = t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('id-ID') : 'unknown';
+            if (!jimpitanByDay[dateStr]) {
+              jimpitanByDay[dateStr] = { ids: [], amount: 0, count: 0, date: t.createdAt };
+            }
+            jimpitanByDay[dateStr].ids.push(t.id);
+            if (isCancellation) {
+              jimpitanByDay[dateStr].amount -= t.amount;
+            } else {
+              jimpitanByDay[dateStr].amount += t.amount;
+              jimpitanByDay[dateStr].count += 1;
+            }
+          } else {
+            groupedData.push(t);
           }
         });
+
+        Object.keys(jimpitanByDay).forEach(dateStr => {
+          const group = jimpitanByDay[dateStr];
+          if (group.amount === 0 && group.count === 0) return;
+          
+          groupedData.push({
+            id: `jimpitan-group-${dateStr}`,
+            type: group.amount >= 0 ? 'income' : 'expense',
+            category: 'JIMPITAN',
+            amount: Math.abs(group.amount),
+            description: group.count > 0 ? `Setoran Jimpitan (${group.count} rumah)` : 'Penyesuaian Jimpitan',
+            createdAt: group.date
+          });
+        });
+
+        groupedData.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
         
         setTotalIncome(tIncome);
         setTotalExpense(tExpense);
         setBalance(tIncome - tExpense);
-        setRecentTransactions(txs);
+        setRecentTransactions(groupedData.slice(0, 5));
 
         // 2. Fetch Active Period based on real-time
         const periodQ = query(
