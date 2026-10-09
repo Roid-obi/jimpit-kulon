@@ -202,7 +202,9 @@ export default function LaporanBulananPage({ params }: { params: Promise<{ month
                     <div>
                       <p className="font-semibold text-sm text-foreground">{exp.description || exp.category}</p>
                       <p className="text-[10px] text-foreground/40 mt-0.5">
-                        {exp.createdAt?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {exp.createdAt?.toDate() ? (
+                          `${exp.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${exp.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                        ) : '-'}
                       </p>
                     </div>
                   </div>

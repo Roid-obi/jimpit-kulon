@@ -300,7 +300,9 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-foreground leading-tight">{tx.description}</p>
                       <p className="text-xs text-foreground/40 mt-0.5">
-                        {tx.createdAt?.toDate?.()?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) || '-'}
+                        {tx.createdAt?.toDate?.() ? (
+                          `${tx.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} • ${tx.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                        ) : '-'}
                       </p>
                     </div>
                   </div>

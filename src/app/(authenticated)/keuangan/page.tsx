@@ -291,7 +291,9 @@ export default function KeuanganPage() {
                             <div className="min-w-0">
                               <p className="font-semibold text-foreground text-sm truncate">{t.description || t.category}</p>
                               <p className="text-xs text-foreground/40 mt-0.5">
-                                {t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                {t.createdAt?.toDate ? (
+                                  `${t.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${t.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                                ) : '-'}
                               </p>
                             </div>
                           </div>
@@ -313,68 +315,121 @@ export default function KeuanganPage() {
       </div>
 
       {/* HIDDEN RECEIPT FOR HTML2CANVAS */}
-      {downloadingMonth && (
-        <div className="absolute top-0 left-[-9999px]">
-          <div 
-            ref={receiptRef} 
-            className="bg-[#ffffff] text-[#000000]"
-            style={{ padding: '40px', width: '800px', fontFamily: 'sans-serif' }}
-          >
-            <div className="text-center mb-8 border-b-2 border-[#000000] pb-6">
-              <h1 className="text-4xl font-black mb-2 uppercase tracking-wide">DANA JIMPITAN RT</h1>
-              <p className="text-xl text-[#4b5563] font-medium">Laporan Keuangan: {downloadingMonth}</p>
-            </div>
-            
-            <div className="flex gap-4 mb-8">
-              <div className="flex-1 bg-[#f3f4f6] p-4 rounded-xl border border-[#e5e7eb]">
-                <p className="text-[#6b7280] text-sm font-bold uppercase tracking-wider mb-1">Total Pemasukan</p>
-                <p className="text-[#16a34a] text-2xl font-bold">
-                  +{formatRupiah(transactions.filter(t => t.type === 'income' && t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth).reduce((sum, t) => sum + t.amount, 0))}
-                </p>
-              </div>
-              <div className="flex-1 bg-[#f3f4f6] p-4 rounded-xl border border-[#e5e7eb]">
-                <p className="text-[#6b7280] text-sm font-bold uppercase tracking-wider mb-1">Total Pengeluaran</p>
-                <p className="text-[#dc2626] text-2xl font-bold">
-                  -{formatRupiah(transactions.filter(t => t.type === 'expense' && t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth).reduce((sum, t) => sum + t.amount, 0))}
-                </p>
-              </div>
-            </div>
+      {downloadingMonth && (() => {
+        const downloadedTxs = transactions.filter(t => t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth);
+        let jimpitanNet = 0;
+        let donations = 0;
+        let expensesList: Transaction[] = [];
+        let monthIncome = 0;
+        let monthExpense = 0;
 
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b-2 border-[#000000] bg-[#f9fafb]">
-                  <th className="py-3 px-4 font-bold text-[#374151]">Tanggal</th>
-                  <th className="py-3 px-4 font-bold text-[#374151]">Kategori / Deskripsi</th>
-                  <th className="py-3 px-4 font-bold text-[#374151] text-right">Nominal</th>
-                </tr>
-              </thead>
-              <tbody className="text-lg">
-                {transactions
-                  .filter(t => t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth)
-                  .map((t, i) => (
-                  <tr key={t.id} className="border-b border-[#e5e7eb]">
-                    <td className="py-4 px-4 whitespace-nowrap text-[#4b5563]">
-                      {t.createdAt?.toDate?.().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="py-4 px-4">
-                      <p className="font-bold">{t.category}</p>
-                      {t.description && <p className="text-sm text-[#6b7280] mt-1">{t.description}</p>}
-                    </td>
-                    <td className={`py-4 px-4 text-right font-bold ${t.type === 'income' ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
-                      {t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            <div className="mt-12 pt-6 border-t-2 border-[#000000] text-center">
-              <p className="text-[#6b7280] text-sm font-medium">Dicetak secara otomatis pada: {new Date().toLocaleString('id-ID')}</p>
-              <p className="text-[#9ca3af] text-xs mt-1">Sistem Keuangan Jimpit Kulon</p>
+        downloadedTxs.forEach(t => {
+          if (t.type === 'income') {
+            monthIncome += t.amount;
+            if (t.category === 'JIMPITAN') {
+              jimpitanNet += t.amount;
+            } else {
+              donations += t.amount;
+            }
+          } else {
+            monthExpense += t.amount;
+            if (t.category === 'JIMPITAN') {
+              jimpitanNet -= t.amount;
+            } else {
+              expensesList.push(t);
+            }
+          }
+        });
+
+        const netMonth = monthIncome - monthExpense;
+
+        return (
+          <div className="absolute top-0 left-[-9999px]">
+            <div 
+              ref={receiptRef} 
+              className="bg-[#ffffff] text-[#000000]"
+              style={{ padding: '40px', width: '800px', fontFamily: 'sans-serif' }}
+            >
+              <div className="text-center mb-8 border-b-2 border-[#000000] pb-6">
+                <h1 className="text-4xl font-black mb-2 uppercase tracking-wide">DANA JIMPITAN RT</h1>
+                <p className="text-xl text-[#4b5563] font-medium">Laporan Keuangan: {downloadingMonth}</p>
+              </div>
+              
+              <div className="flex gap-4 mb-8">
+                <div className="flex-1 bg-[#f0fdf4] p-5 rounded-xl border border-[#bbf7d0]">
+                  <p className="text-[#166534] text-sm font-bold uppercase tracking-wider mb-2">Total Dana Jimpitan Saat Ini</p>
+                  <p className="text-[#16a34a] text-3xl font-bold">
+                    {formatRupiah(balance)}
+                  </p>
+                </div>
+                <div className="flex-1 bg-[#f3f4f6] p-5 rounded-xl border border-[#e5e7eb]">
+                  <p className="text-[#6b7280] text-sm font-bold uppercase tracking-wider mb-2">Overall Keuangan ({downloadingMonth})</p>
+                  <p className={`text-3xl font-bold ${netMonth >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+                    {netMonth >= 0 ? '+' : '-'}{formatRupiah(Math.abs(netMonth))}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-8 border border-[#e5e7eb] rounded-xl overflow-hidden">
+                <div className="p-4 bg-[#f9fafb] border-b border-[#e5e7eb]">
+                  <h2 className="font-bold text-lg text-[#111827]">Rincian Pemasukan</h2>
+                </div>
+                <div className="p-5 flex flex-col gap-4 bg-[#ffffff]">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-lg text-[#111827]">Total Pemasukan Jimpitan</p>
+                      <p className="text-sm text-[#6b7280] mt-1">Sudah dikurangi pembatalan</p>
+                    </div>
+                    <p className="font-bold text-xl text-[#16a34a]">+{formatRupiah(jimpitanNet)}</p>
+                  </div>
+                  <div className="h-px bg-[#e5e7eb]" />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-lg text-[#111827]">Dana Jimpitan Lain-lain</p>
+                      <p className="text-sm text-[#6b7280] mt-1">Donasi & kelebihan bayar</p>
+                    </div>
+                    <p className="font-bold text-xl text-[#16a34a]">+{formatRupiah(donations)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-8 border border-[#e5e7eb] rounded-xl overflow-hidden">
+                <div className="p-4 bg-[#f9fafb] border-b border-[#e5e7eb]">
+                  <h2 className="font-bold text-lg text-[#111827]">Rincian Pengeluaran</h2>
+                </div>
+                <div className="bg-[#ffffff]">
+                  {expensesList.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-lg text-[#9ca3af]">Tidak ada pengeluaran di bulan ini</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-[#e5e7eb]">
+                      {expensesList.map(exp => (
+                        <li key={exp.id} className="p-5 flex items-center justify-between">
+                          <div>
+                            <p className="font-bold text-lg text-[#111827]">{exp.description || exp.category}</p>
+                            <p className="text-sm text-[#6b7280] mt-1">
+                              {exp.createdAt?.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })} • {exp.createdAt?.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                            </p>
+                          </div>
+                          <p className="font-bold text-xl text-[#dc2626]">
+                            -{formatRupiah(exp.amount)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-12 pt-6 border-t-2 border-[#000000] text-center">
+                <p className="text-[#6b7280] text-base font-medium">Dicetak secara otomatis pada: {new Date().toLocaleString('id-ID')}</p>
+                <p className="text-[#9ca3af] text-sm mt-1">Sistem Keuangan Jimpit Kulon</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODALS */}
       {showFilterModal && (
