@@ -16,6 +16,9 @@ type Transaction = {
   amount: number;
   description: string;
   createdAt: any;
+  houseId?: string | null;
+  isGrouped?: boolean;
+  subTransactions?: Transaction[];
 };
 
 export default function KeuanganPage() {
@@ -27,10 +30,20 @@ export default function KeuanganPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [filterDate, setFilterDate] = useState<'all' | 'this_month' | 'last_month' | 'last_3_months'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   
   // Modals
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+  // Expanded Groups State
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -39,15 +52,28 @@ export default function KeuanganPage() {
           collection(db, 'financial_transactions'),
           orderBy('createdAt', 'desc')
         );
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Transaction[];
+        const [querySnapshot, housesSnapshot] = await Promise.all([
+          getDocs(q),
+          getDocs(collection(db, 'houses'))
+        ]);
+
+        const housesMap = new Map();
+        housesSnapshot.docs.forEach(doc => {
+          const houseData = doc.data();
+          housesMap.set(doc.id, houseData.headOfFamily || houseData.houseNumber || 'Tidak Diketahui');
+        });
+
+        const data = querySnapshot.docs.map(doc => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            ...d,
+          } as Transaction;
+        });
 
         // --- AGGREGATION LOGIC ---
         const groupedData: Transaction[] = [];
-        const jimpitanByDay: Record<string, { ids: string[], amount: number, count: number, date: any }> = {};
+        const jimpitanByDay: Record<string, { date: any, transactions: Transaction[] }> = {};
 
         data.forEach(t => {
           const isJimpitanIncome = (t.category.toLowerCase().includes('jimpitan') || t.category.toLowerCase() === 'payment' || (t.description && t.description.toLowerCase().includes('jimpitan'))) && t.type === 'income';
@@ -56,16 +82,22 @@ export default function KeuanganPage() {
           if (isJimpitanIncome || isCancellation) {
             const dateStr = t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('id-ID') : 'unknown';
             if (!jimpitanByDay[dateStr]) {
-              jimpitanByDay[dateStr] = { ids: [], amount: 0, count: 0, date: t.createdAt };
+              jimpitanByDay[dateStr] = { date: t.createdAt, transactions: [] };
             }
-            jimpitanByDay[dateStr].ids.push(t.id);
-            if (isCancellation) {
-              jimpitanByDay[dateStr].amount -= t.amount;
-              // we don't decrement count to keep it simple, or maybe we can?
-            } else {
-              jimpitanByDay[dateStr].amount += t.amount;
-              jimpitanByDay[dateStr].count += 1;
+            
+            // Re-format description for jimpitan subtransactions
+            if (t.houseId && housesMap.has(t.houseId)) {
+              const houseName = housesMap.get(t.houseId);
+              if (isCancellation) {
+                t.description = `Pembatalan - Rumah ${houseName}`;
+              } else {
+                t.description = `Rumah ${houseName}`;
+              }
+            } else if (isJimpitanIncome && (!t.description || t.description === 'Pembayaran jimpitan rutin')) {
+              t.description = 'Jimpitan';
             }
+
+            jimpitanByDay[dateStr].transactions.push(t);
           } else {
             groupedData.push(t);
           }
@@ -73,15 +105,30 @@ export default function KeuanganPage() {
 
         Object.keys(jimpitanByDay).forEach(dateStr => {
           const group = jimpitanByDay[dateStr];
-          if (group.amount === 0 && group.count === 0) return; // Skip if nothing
+          if (group.transactions.length === 0) return;
+          
+          let totalIncome = 0;
+          let totalExpense = 0;
+          
+          group.transactions.forEach(t => {
+            if (t.type === 'income') totalIncome += t.amount;
+            if (t.type === 'expense') totalExpense += t.amount;
+          });
+          
+          const netAmount = totalIncome - totalExpense;
+          
+          // Sort subTransactions within the group by date
+          group.transactions.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
           
           groupedData.push({
             id: `jimpitan-group-${dateStr}`,
-            type: group.amount >= 0 ? 'income' : 'expense',
+            type: netAmount >= 0 ? 'income' : 'expense',
             category: 'JIMPITAN',
-            amount: Math.abs(group.amount),
-            description: group.count > 0 ? `Setoran Jimpitan (${group.count} rumah)` : 'Penyesuaian Jimpitan',
-            createdAt: group.date
+            amount: Math.abs(netAmount),
+            description: `Setoran Jimpitan`,
+            createdAt: group.date,
+            isGrouped: true,
+            subTransactions: group.transactions
           });
         });
 
@@ -105,11 +152,30 @@ export default function KeuanganPage() {
   const filteredTransactions = transactions.filter(t => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
+      let match = false;
+      
       const matchDesc = t.description?.toLowerCase().includes(q);
       const matchCat = t.category?.toLowerCase().includes(q);
-      if (!matchDesc && !matchCat) return false;
+      
+      if (matchDesc || matchCat) {
+        match = true;
+      }
+      
+      // Also search in subtransactions if it's a group
+      if (!match && t.isGrouped && t.subTransactions) {
+        if (t.subTransactions.some(subT => 
+          subT.description?.toLowerCase().includes(q) || 
+          subT.category?.toLowerCase().includes(q)
+        )) {
+          match = true;
+        }
+      }
+      
+      if (!match) return false;
     }
+    
     if (filterType !== 'all' && t.type !== filterType) return false;
+    if (filterCategory !== 'all' && t.category !== filterCategory) return false;
     
     if (filterDate !== 'all' && t.createdAt?.toDate) {
       const date = t.createdAt.toDate();
@@ -131,6 +197,8 @@ export default function KeuanganPage() {
     if (!t.createdAt?.toDate) return null;
     return t.createdAt.toDate().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   }).filter(Boolean))) as string[];
+
+  const availableCategories = Array.from(new Set(transactions.map(t => t.category).filter(Boolean))).sort() as string[];
 
   const formatRupiah = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`;
 
@@ -216,7 +284,7 @@ export default function KeuanganPage() {
             className="w-11 flex-shrink-0 bg-black/5 rounded-xl flex items-center justify-center text-foreground/70 active:scale-95 transition-transform relative"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            {(filterType !== 'all' || filterDate !== 'all') && (
+            {(filterType !== 'all' || filterDate !== 'all' || filterCategory !== 'all') && (
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white" />
             )}
           </button>
@@ -230,7 +298,7 @@ export default function KeuanganPage() {
         ) : error ? (
           <p className="text-center py-8 text-sm text-red-500">{error}</p>
         ) : (
-          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden pb-4">
+          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden pb-4 mb-8">
             {filteredTransactions.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-sm text-foreground/40">Tidak ada transaksi ditemukan</p>
@@ -263,46 +331,98 @@ export default function KeuanganPage() {
                   
                   return (
                   <div key={group.title}>
-                    <Link href={`/keuangan/laporan/${encodeURIComponent(group.title)}`} className="px-4 pt-6 first:pt-4 pb-3 bg-white flex justify-between items-center sticky top-0 z-10 block group">
-                      <h2 className="text-lg font-bold text-foreground">{group.title}</h2>
+                    <Link href={`/keuangan/laporan/${encodeURIComponent(group.title)}`} className="px-4 py-3 bg-slate-50/90 backdrop-blur-sm flex justify-between items-center sticky top-0 z-10 border-y border-slate-100 group mt-4 first:mt-0">
+                      <h2 className="text-[15px] font-bold text-slate-700">{group.title}</h2>
                       <div className="flex items-center gap-2">
-                        <p className="text-base font-medium text-primary">
+                        <p className="text-sm font-bold text-primary">
                           {netAmount >= 0 ? '+' : '-'}{formatRupiah(Math.abs(netAmount))}
                         </p>
-                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-                          <ChevronRight className="w-4 h-4" />
+                        <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                          <ChevronRight className="w-3.5 h-3.5" />
                         </div>
                       </div>
                     </Link>
                     <ul>
                       {group.items.map((t, i) => (
-                        <li key={t.id} className={`px-4 py-3.5 flex items-center justify-between ${
-                          i < group.items.length - 1 ? 'border-b border-black/[0.04]' : ''
-                        }`}>
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              t.type === 'income' ? 'bg-green-50' : 'bg-red-50'
-                            }`}>
-                              {t.type === 'income'
-                                ? <TrendingUp className="w-4 h-4 text-green-600" />
-                                : <TrendingDown className="w-4 h-4 text-red-500" />
+                        <div key={t.id}>
+                          <li 
+                            onClick={(e) => {
+                              if (t.isGrouped) {
+                                toggleGroup(t.id, e);
+                              } else {
+                                setSelectedTransaction(t);
                               }
+                            }}
+                            className={`px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 active:bg-slate-100 transition-colors ${
+                              i < group.items.length - 1 && (!t.isGrouped || !expandedGroups[t.id]) ? 'border-b border-black/[0.04]' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                t.type === 'income' ? 'bg-green-50' : 'bg-red-50'
+                              }`}>
+                                {t.type === 'income'
+                                  ? <TrendingUp className="w-4 h-4 text-green-600" />
+                                  : <TrendingDown className="w-4 h-4 text-red-500" />
+                                }
+                              </div>
+                              <div className="min-w-0 flex flex-col justify-center">
+                                <p className="font-semibold text-foreground text-sm truncate">{t.description || t.category}</p>
+                                {t.isGrouped ? (
+                                  <p className="text-xs text-foreground/40 mt-0.5">
+                                    {t.subTransactions?.length || 0} transaksi
+                                    {t.createdAt?.toDate ? ` • ${t.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}` : ''}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-foreground/40 mt-0.5">
+                                    {t.createdAt?.toDate ? (
+                                      `${t.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${t.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                                    ) : '-'}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-foreground text-sm truncate">{t.description || t.category}</p>
-                              <p className="text-xs text-foreground/40 mt-0.5">
-                                {t.createdAt?.toDate ? (
-                                  `${t.createdAt.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${t.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
-                                ) : '-'}
+                            <div className="flex items-center gap-2">
+                              <p className={`font-bold text-sm flex-shrink-0 ${
+                                t.type === 'income' ? 'text-green-600' : 'text-red-500'
+                              }`}>
+                                {t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}
                               </p>
+                              {t.isGrouped && (
+                                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${expandedGroups[t.id] ? 'rotate-90' : ''}`} />
+                              )}
                             </div>
-                          </div>
-                          <p className={`font-bold text-sm ml-2 flex-shrink-0 ${
-                            t.type === 'income' ? 'text-green-600' : 'text-red-500'
-                          }`}>
-                            {t.type === 'income' ? '+' : '-'}{formatRupiah(t.amount)}
-                          </p>
-                        </li>
+                          </li>
+
+                          {/* Sub transactions dropdown for grouped Jimpitan */}
+                          {t.isGrouped && expandedGroups[t.id] && (
+                            <ul className="bg-slate-50/50 border-y border-black/[0.04] shadow-inner mb-2">
+                              {t.subTransactions?.map((subT, subIdx) => (
+                                <li
+                                  key={subT.id}
+                                  onClick={() => setSelectedTransaction(subT)}
+                                  className={`px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-100 active:bg-slate-200 transition-colors pl-16 ${
+                                     subIdx < t.subTransactions!.length - 1 ? 'border-b border-black/[0.04]' : ''
+                                  }`}
+                                >
+                                  <div className="min-w-0 pr-4">
+                                    <p className={`font-medium text-sm truncate ${subT.type === 'expense' ? 'text-slate-500 line-through' : 'text-slate-700'}`}>
+                                      {subT.description || subT.category}
+                                    </p>
+                                    <p className="text-[10.5px] text-slate-400 mt-0.5 font-medium">
+                                      {subT.createdAt?.toDate?.().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
+                                    </p>
+                                  </div>
+                                  <p className={`font-bold text-xs flex-shrink-0 ${
+                                    subT.type === 'income' ? 'text-green-600' : 'text-red-500'
+                                  }`}>
+                                    {subT.type === 'income' ? '+' : '-'}{formatRupiah(subT.amount)}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       ))}
                     </ul>
                   </div>
@@ -316,7 +436,7 @@ export default function KeuanganPage() {
 
       {/* HIDDEN RECEIPT FOR HTML2CANVAS */}
       {downloadingMonth && (() => {
-        const downloadedTxs = transactions.filter(t => t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth);
+        const downloadedTxs = transactions.filter(t => t.createdAt?.toDate?.().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) === downloadingMonth || (downloadingMonth === 'Bulan Ini' && t.createdAt?.toDate?.().getMonth() === new Date().getMonth() && t.createdAt?.toDate?.().getFullYear() === new Date().getFullYear()));
         let jimpitanNet = 0;
         let donations = 0;
         let expensesList: Transaction[] = [];
@@ -435,15 +555,15 @@ export default function KeuanganPage() {
       {showFilterModal && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowFilterModal(false)} />
-          <div className="relative bg-white rounded-t-3xl p-5 pb-8 animate-in slide-in-from-bottom-full duration-300">
-            <div className="flex justify-between items-center mb-6">
+          <div className="relative bg-white rounded-t-3xl p-5 pb-8 animate-in slide-in-from-bottom-full duration-300 max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 py-2">
               <h3 className="font-bold text-lg text-foreground">Filter Aktivitas</h3>
               <button onClick={() => setShowFilterModal(false)} className="p-1 rounded-full bg-black/5 text-foreground/60">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
                 <p className="text-sm font-semibold text-foreground mb-3">Tipe</p>
                 <div className="flex flex-wrap gap-2">
@@ -486,11 +606,40 @@ export default function KeuanganPage() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-3">Kategori</p>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => setFilterCategory('all')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                      filterCategory === 'all' 
+                        ? 'bg-primary border-primary text-primary-foreground' 
+                        : 'bg-white border-black/10 text-foreground/70 hover:border-black/20'
+                    }`}
+                  >
+                    Semua
+                  </button>
+                  {availableCategories.map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => setFilterCategory(cat)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                        filterCategory === cat 
+                          ? 'bg-primary border-primary text-primary-foreground' 
+                          : 'bg-white border-black/10 text-foreground/70 hover:border-black/20'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             
-            <div className="mt-8 flex gap-3">
+            <div className="mt-8 flex gap-3 sticky bottom-0 bg-white pt-2 pb-2">
               <button 
-                onClick={() => { setFilterType('all'); setFilterDate('all'); }}
+                onClick={() => { setFilterType('all'); setFilterDate('all'); setFilterCategory('all'); }}
                 className="flex-1 py-3.5 rounded-xl font-bold text-foreground/70 border border-black/10 bg-white active:bg-black/5"
               >
                 RESET
@@ -537,6 +686,82 @@ export default function KeuanganPage() {
                     </button>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSACTION DETAIL MODAL */}
+      {selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedTransaction(null)} />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="p-4 flex justify-between items-center absolute top-0 left-0 right-0">
+              <button onClick={() => setSelectedTransaction(null)} className="p-2 rounded-full bg-black/5 hover:bg-black/10 text-foreground/70 transition-colors ml-auto">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 pt-12">
+              <div className="flex flex-col items-center justify-center mb-8">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-sm ${
+                  selectedTransaction.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                }`}>
+                  {selectedTransaction.type === 'income'
+                    ? <TrendingUp className="w-8 h-8" />
+                    : <TrendingDown className="w-8 h-8" />
+                  }
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    selectedTransaction.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedTransaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider">
+                    {selectedTransaction.category}
+                  </span>
+                </div>
+                <p className={`text-4xl font-bold mt-2 ${
+                  selectedTransaction.type === 'income' ? 'text-green-600' : 'text-red-500'
+                }`}>
+                  {selectedTransaction.type === 'income' ? '+' : '-'}{formatRupiah(selectedTransaction.amount)}
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl p-4 space-y-4 border border-slate-100">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Keterangan</span>
+                  <span className="text-sm font-medium text-slate-900">{selectedTransaction.description || '-'}</span>
+                </div>
+                
+                <div className="h-px bg-slate-200" />
+                
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Waktu Transaksi</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {selectedTransaction.createdAt?.toDate ? (
+                      `${selectedTransaction.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}, ${selectedTransaction.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                    ) : '-'}
+                  </span>
+                </div>
+
+                <div className="h-px bg-slate-200" />
+                
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ID Referensi</span>
+                  <span className="text-xs font-medium text-slate-400 break-all">{selectedTransaction.id}</span>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                 <button 
+                   onClick={() => setSelectedTransaction(null)}
+                   className="w-full py-3.5 rounded-xl font-bold text-white bg-primary active:scale-[0.98] transition-transform"
+                 >
+                   TUTUP
+                 </button>
               </div>
             </div>
           </div>
