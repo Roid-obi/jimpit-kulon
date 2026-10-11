@@ -17,6 +17,10 @@ type Transaction = {
   description: string;
   createdAt: any;
   houseId?: string | null;
+  createdBy?: string;
+  takenBy?: string;
+  creatorName?: string;
+  takerName?: string;
   isGrouped?: boolean;
   subTransactions?: Transaction[];
 };
@@ -52,9 +56,10 @@ export default function KeuanganPage() {
           collection(db, 'financial_transactions'),
           orderBy('createdAt', 'desc')
         );
-        const [querySnapshot, housesSnapshot] = await Promise.all([
+        const [querySnapshot, housesSnapshot, usersSnapshot] = await Promise.all([
           getDocs(q),
-          getDocs(collection(db, 'houses'))
+          getDocs(collection(db, 'houses')),
+          getDocs(collection(db, 'users'))
         ]);
 
         const housesMap = new Map();
@@ -63,11 +68,19 @@ export default function KeuanganPage() {
           housesMap.set(doc.id, houseData.headOfFamily || houseData.houseNumber || 'Tidak Diketahui');
         });
 
+        const usersMap = new Map();
+        usersSnapshot.docs.forEach(doc => {
+          const userData = doc.data();
+          usersMap.set(doc.id, userData.name || userData.email || 'Petugas');
+        });
+
         const data = querySnapshot.docs.map(doc => {
           const d = doc.data();
           return {
             id: doc.id,
             ...d,
+            creatorName: d.createdBy ? (usersMap.get(d.createdBy) || d.createdBy) : 'Sistem',
+            takerName: d.takenBy ? (usersMap.get(d.takenBy) || d.takenBy) : undefined
           } as Transaction;
         });
 
@@ -156,8 +169,10 @@ export default function KeuanganPage() {
       
       const matchDesc = t.description?.toLowerCase().includes(q);
       const matchCat = t.category?.toLowerCase().includes(q);
+      const matchCreator = t.creatorName?.toLowerCase().includes(q);
+      const matchTaker = t.takerName?.toLowerCase().includes(q);
       
-      if (matchDesc || matchCat) {
+      if (matchDesc || matchCat || matchCreator || matchTaker) {
         match = true;
       }
       
@@ -165,7 +180,8 @@ export default function KeuanganPage() {
       if (!match && t.isGrouped && t.subTransactions) {
         if (t.subTransactions.some(subT => 
           subT.description?.toLowerCase().includes(q) || 
-          subT.category?.toLowerCase().includes(q)
+          subT.category?.toLowerCase().includes(q) ||
+          subT.creatorName?.toLowerCase().includes(q)
         )) {
           match = true;
         }
@@ -655,43 +671,6 @@ export default function KeuanganPage() {
         </div>
       )}
 
-      {showDownloadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDownloadModal(false)} />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-black/5 flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Unduh Laporan</h3>
-              <button onClick={() => setShowDownloadModal(false)} className="p-1 rounded-full hover:bg-black/5 text-foreground/60">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="bg-black/5 rounded-lg p-3 flex gap-2 items-start mb-4">
-                <p className="text-xs text-foreground/60 leading-relaxed">
-                  Pilih bulan untuk mengunduh laporan aktivitas keuangan dalam format gambar (PNG) yang mudah dibaca.
-                </p>
-              </div>
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                {availableMonths.length === 0 ? (
-                  <p className="text-sm text-center text-foreground/50 py-4">Belum ada data bulan</p>
-                ) : (
-                  availableMonths.map(month => (
-                    <button
-                      key={month}
-                      onClick={() => handleDownload(month)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl border border-black/10 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
-                    >
-                      <span className="font-medium text-sm text-foreground/80 group-hover:text-primary">{month}</span>
-                      <Download className="w-4 h-4 text-foreground/40 group-hover:text-primary" />
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* TRANSACTION DETAIL MODAL */}
       {selectedTransaction && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4">
@@ -742,10 +721,33 @@ export default function KeuanganPage() {
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Waktu Transaksi</span>
                   <span className="text-sm font-medium text-slate-900">
                     {selectedTransaction.createdAt?.toDate ? (
-                      `${selectedTransaction.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}, ${selectedTransaction.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}`
+                      `${selectedTransaction.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}, ${selectedTransaction.createdAt.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB`
                     ) : '-'}
                   </span>
                 </div>
+
+                <div className="h-px bg-slate-200" />
+
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    {selectedTransaction.category.toLowerCase().includes('cancellation') || selectedTransaction.category.toLowerCase() === 'cancellation'
+                      ? 'Dibatalkan Oleh'
+                      : (selectedTransaction.category.toLowerCase() === 'payment' || selectedTransaction.category.toLowerCase().includes('jimpitan') 
+                          ? 'Petugas Penarik' 
+                          : 'Dicatat Oleh')}
+                  </span>
+                  <span className="text-sm font-medium text-slate-900">{selectedTransaction.creatorName || 'Sistem'}</span>
+                </div>
+                
+                {selectedTransaction.takerName && selectedTransaction.takerName !== 'Sistem' && (
+                  <>
+                    <div className="h-px bg-slate-200" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Diambil Oleh / Penerima</span>
+                      <span className="text-sm font-medium text-slate-900">{selectedTransaction.takerName}</span>
+                    </div>
+                  </>
+                )}
 
                 <div className="h-px bg-slate-200" />
                 
