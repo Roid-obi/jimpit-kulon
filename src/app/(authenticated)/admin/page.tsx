@@ -947,23 +947,19 @@ export default function AdminPage() {
         } shadow-lg md:shadow-none`}
       >
         {/* Brand Header */}
-        <div className="p-4 border-b border-black/8 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/jimpit-kulon-logo.png"
-              alt="Jimpit Kulon"
-              width={110}
-              height={36}
-              className="object-contain"
-              priority
-            />
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/25 text-foreground border border-primary/30">
-              Admin
-            </span>
-          </div>
+        <div className="relative p-4 border-b border-black/8 flex items-center justify-center">
+          <Image
+            src="/jimpit-kulon-logo.png"
+            alt="Jimpit Kulon"
+            width={130}
+            height={42}
+            className="object-contain"
+            priority
+          />
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-1.5 rounded-lg text-foreground/50 hover:bg-black/5"
+            className="absolute right-3 top-1/2 -translate-y-1/2 md:hidden p-1.5 rounded-lg text-foreground/50 hover:bg-black/5"
+            aria-label="Tutup sidebar"
           >
             <X className="w-5 h-5" />
           </button>
