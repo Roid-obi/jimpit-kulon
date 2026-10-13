@@ -68,7 +68,10 @@ export default function DashboardPage() {
           getDocs(txQ),
           getHouses(),
           getDocs(periodQ),
-          getDocs(collection(db, "users")),
+          getDocs(collection(db, "users")).catch((err) => {
+            console.warn("Could not fetch users list:", err);
+            return { docs: [] } as any;
+          }),
         ]);
 
         const housesMap = new Map();
@@ -77,10 +80,12 @@ export default function DashboardPage() {
         });
 
         const usersMap = new Map();
-        usersSnapshot.docs.forEach((doc) => {
-          const u = doc.data();
-          usersMap.set(doc.id, u.name || u.email || "Petugas");
-        });
+        if (usersSnapshot?.docs) {
+          usersSnapshot.docs.forEach((doc: any) => {
+            const u = doc.data();
+            usersMap.set(doc.id, u.name || u.email || "Petugas");
+          });
+        }
 
         let tIncome = 0;
         let tExpense = 0;

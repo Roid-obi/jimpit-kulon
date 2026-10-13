@@ -1,11 +1,14 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   getFirestore,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   Timestamp,
 } from "firebase/firestore";
@@ -135,3 +138,17 @@ export async function addExpense(input: ExpenseInput): Promise<void> {
     createdAt: serverTimestamp(),
   });
 }
+
+export async function updateTransaction(
+  id: string,
+  data: Partial<Omit<FinancialTransaction, "id" | "createdAt">>
+): Promise<void> {
+  const docRef = doc(db, "financial_transactions", id);
+  await updateDoc(docRef, data);
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  const docRef = doc(db, "financial_transactions", id);
+  await deleteDoc(docRef);
+}
+

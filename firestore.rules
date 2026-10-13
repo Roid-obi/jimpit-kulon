@@ -22,8 +22,8 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'petugas';
+      allow read: if (isAuthenticated() && request.auth.uid == userId) || isPetugas();
+      allow create: if isAuthenticated() && ((request.auth.uid == userId && request.resource.data.role == 'petugas') || isAdmin());
       allow update, delete: if isAdmin();
     }
 

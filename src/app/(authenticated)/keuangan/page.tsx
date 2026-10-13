@@ -59,7 +59,10 @@ export default function KeuanganPage() {
         const [querySnapshot, housesSnapshot, usersSnapshot] = await Promise.all([
           getDocs(q),
           getDocs(collection(db, 'houses')),
-          getDocs(collection(db, 'users'))
+          getDocs(collection(db, 'users')).catch((err) => {
+            console.warn('Could not fetch users list:', err);
+            return { docs: [] } as any;
+          })
         ]);
 
         const housesMap = new Map();
@@ -69,10 +72,12 @@ export default function KeuanganPage() {
         });
 
         const usersMap = new Map();
-        usersSnapshot.docs.forEach(doc => {
-          const userData = doc.data();
-          usersMap.set(doc.id, userData.name || userData.email || 'Petugas');
-        });
+        if (usersSnapshot?.docs) {
+          usersSnapshot.docs.forEach((doc: any) => {
+            const userData = doc.data();
+            usersMap.set(doc.id, userData.name || userData.email || 'Petugas');
+          });
+        }
 
         const data = querySnapshot.docs.map(doc => {
           const d = doc.data();

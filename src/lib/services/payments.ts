@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -7,6 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -243,3 +245,29 @@ export async function cancelPayment(paymentId: string, cancelledBy: string): Pro
 
   await batch.commit();
 }
+
+export async function getAllPayments(): Promise<Payment[]> {
+  const q = query(collection(db, "payments"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(
+    (doc) =>
+      ({
+        id: doc.id,
+        ...doc.data(),
+      }) as Payment
+  );
+}
+
+export async function updatePayment(
+  id: string,
+  data: Partial<Omit<Payment, "id" | "createdAt">>
+): Promise<void> {
+  const paymentRef = doc(db, "payments", id);
+  await updateDoc(paymentRef, data);
+}
+
+export async function deletePayment(id: string): Promise<void> {
+  const paymentRef = doc(db, "payments", id);
+  await deleteDoc(paymentRef);
+}
+

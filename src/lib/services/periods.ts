@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -9,8 +10,8 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  where,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import type { Period } from "@/types/jimpitan";
@@ -72,3 +73,17 @@ export async function archivePeriod(id: string): Promise<void> {
     status: "archived"
   });
 }
+
+export async function updatePeriod(
+  id: string,
+  data: Partial<Omit<Period, "id" | "createdAt">>
+): Promise<void> {
+  const docRef = doc(db, "periods", id);
+  await updateDoc(docRef, data);
+}
+
+export async function deletePeriod(id: string): Promise<void> {
+  const docRef = doc(db, "periods", id);
+  await deleteDoc(docRef);
+}
+
