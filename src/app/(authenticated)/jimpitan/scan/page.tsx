@@ -287,23 +287,23 @@ export default function ScanQRPage() {
       {/* Bottom Container (Cari Manual) */}
       {!house && !errorMsg && (
         <div 
-          className="absolute bottom-0 left-0 right-0 bg-[#161616] rounded-t-3xl px-6 pt-6 z-10 flex flex-col items-center animate-slide-up-sheet border-t border-white/5"
+          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl px-6 pt-6 z-10 flex flex-col items-center animate-slide-up-sheet shadow-2xl"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 32px), 32px)' }}
         >
-          <div className="w-10 h-1 bg-white/20 rounded-full mb-6" />
+          <div className="w-10 h-1.5 bg-gray-200 rounded-full mb-6" />
           <div className="flex gap-3 w-full">
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#2a2a2a] border border-white/10 text-white py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform shadow-lg"
+              className="flex-1 flex items-center justify-center gap-2 bg-primary text-[#000000] py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform"
             >
-              <ImagePlus className="w-5 h-5 text-primary" />
+              <ImagePlus className="w-5 h-5" />
               Upload
             </button>
             <button 
               onClick={() => handleNavigate('/jimpitan')}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#2a2a2a] border border-white/10 text-white py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform shadow-lg"
+              className="flex-1 flex items-center justify-center gap-2 bg-surface text-foreground py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform border border-border"
             >
-              <Search className="w-5 h-5 text-primary" />
+              <Search className="w-5 h-5" />
               Manual
             </button>
           </div>
