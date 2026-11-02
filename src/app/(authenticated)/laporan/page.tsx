@@ -254,17 +254,27 @@ export default function LaporanPage() {
               <h2 className="font-semibold text-sm text-foreground">Daftar Transaksi</h2>
             </div>
             <ul className="divide-y divide-black/[0.04]">
-              {transactions.map(tx => (
-                <li key={tx.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm text-foreground">{tx.description || tx.category || 'Transaksi'}</p>
-                    <p className="text-xs text-foreground/50 mt-0.5">{tx.createdAt?.toDate().toLocaleDateString('id-ID')}</p>
-                  </div>
-                  <div className={`font-bold text-sm ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'income' ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
-                  </div>
-                </li>
-              ))}
+              {transactions.map(tx => {
+                const isCancellation = (tx.category || '').toLowerCase() === 'cancellation';
+                return (
+                  <li key={tx.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-foreground">{tx.description || tx.category || 'Transaksi'}</p>
+                        {isCancellation && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            Pembatalan
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-foreground/50 mt-0.5">{tx.createdAt?.toDate ? tx.createdAt.toDate().toLocaleDateString('id-ID') : '-'}</p>
+                    </div>
+                    <div className={`font-bold text-sm ${tx.type === 'income' ? 'text-green-600' : isCancellation ? 'text-amber-700' : 'text-red-600'}`}>
+                      {tx.type === 'income' ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
             {transactions.length === 0 && !loading && (
               <div className="p-8 text-center text-sm text-foreground/50">Belum ada transaksi di bulan ini.</div>

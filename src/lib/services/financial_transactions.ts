@@ -12,11 +12,16 @@ import type { FinancialTransaction } from "@/types/jimpitan";
 
 const db = getFirestore(app);
 
-// Interface untuk summary keuangan
+// Interface untuk summary keuangan dengan rincian reversal pembatalan
 export interface FinancialSummary {
   totalIncome: number;
   totalExpense: number;
   balance: number;
+  jimpitanIncome: number;
+  donationIncome: number;
+  cancellationExpense: number;
+  operationalExpense: number;
+  netJimpitan: number;
 }
 
 // Interface untuk input pemasukan manual
@@ -64,18 +69,31 @@ export async function getTransactions(
 
 // Hitung ringkasan keuangan
 export async function getFinancialSummary(): Promise<FinancialSummary> {
-  // We can fetch all transactions to calculate summary
-  // In a real app with large data, this should be done with aggregations or cloud functions
   const transactions = await getTransactions();
   
   let totalIncome = 0;
   let totalExpense = 0;
+  let jimpitanIncome = 0;
+  let donationIncome = 0;
+  let cancellationExpense = 0;
+  let operationalExpense = 0;
 
   for (const tx of transactions) {
+    const category = (tx.category || "").toLowerCase();
     if (tx.type === "income") {
       totalIncome += tx.amount;
+      if (category === "payment" || category.includes("jimpitan")) {
+        jimpitanIncome += tx.amount;
+      } else {
+        donationIncome += tx.amount;
+      }
     } else if (tx.type === "expense") {
       totalExpense += tx.amount;
+      if (category === "cancellation") {
+        cancellationExpense += tx.amount;
+      } else {
+        operationalExpense += tx.amount;
+      }
     }
   }
 
@@ -83,6 +101,11 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     totalIncome,
     totalExpense,
     balance: totalIncome - totalExpense,
+    jimpitanIncome,
+    donationIncome,
+    cancellationExpense,
+    operationalExpense,
+    netJimpitan: jimpitanIncome - cancellationExpense,
   };
 }
 
