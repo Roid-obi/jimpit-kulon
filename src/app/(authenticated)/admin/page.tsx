@@ -27,6 +27,32 @@ const db = getFirestore(app);
 
 type AdminSection = 'overview' | 'houses' | 'periods' | 'payments' | 'transactions' | 'users' | 'settings';
 
+interface PeriodFormState {
+  id?: string;
+  periodNumber: number | string;
+  startDateStr?: string;
+  endDateStr?: string;
+  amount: number | string;
+  status: 'active' | 'archived' | string;
+}
+
+interface PaymentFormState {
+  houseId: string;
+  periodId: string;
+  amount: number | string;
+  extraAmount: number | string;
+  paidBy?: string;
+}
+
+interface TransactionFormState {
+  type: 'income' | 'expense';
+  category: string;
+  amount: number | string;
+  description: string;
+  takenBy?: string;
+  notes?: string;
+}
+
 export default function AdminPage() {
   const { user, userData, logout } = useAuth();
   const router = useRouter();
@@ -72,16 +98,16 @@ export default function AdminPage() {
 
   // 2. Period Modals
   const [periodModalMode, setPeriodModalMode] = useState<'create' | 'edit' | null>(null);
-  const [activePeriod, setActivePeriod] = useState<any | null>(null);
+  const [activePeriod, setActivePeriod] = useState<PeriodFormState | null>(null);
   const [isBatchCreatingPeriods, setIsBatchCreatingPeriods] = useState(false);
 
   // 3. Payment Modals
   const [paymentModalMode, setPaymentModalMode] = useState<'create' | null>(null);
-  const [activePayment, setActivePayment] = useState<any | null>(null);
+  const [activePayment, setActivePayment] = useState<PaymentFormState | null>(null);
 
   // 4. Transaction Modals
   const [txModalMode, setTxModalMode] = useState<'create' | null>(null);
-  const [activeTx, setActiveTx] = useState<any | null>(null);
+  const [activeTx, setActiveTx] = useState<TransactionFormState | null>(null);
 
   // 5. User Modals
   const [userModalMode, setUserModalMode] = useState<'create' | 'edit' | null>(null);
@@ -141,9 +167,10 @@ export default function AdminPage() {
       setUsers(userList);
 
       if (isManual) showNotification('Data berhasil diperbarui!', 'success');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching admin data:', err);
-      showNotification(`Gagal memuat data: ${err.message}`, 'error');
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan internal.';
+      showNotification(`Gagal memuat data: ${msg}`, 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -191,25 +218,30 @@ export default function AdminPage() {
   }, [users]);
 
   // Formatting Helpers
-  const formatDateRange = (start: any, end: any) => {
-    if (!start || !end) return '-';
-    try {
-      const s = start?.toDate ? start.toDate() : new Date(start);
-      const e = end?.toDate ? end.toDate() : new Date(end);
-      return `${s.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${e.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-    } catch {
-      return '-';
+  const toSafeDate = (value: unknown): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+      return value.toDate();
     }
+    if (typeof value === 'string' || typeof value === 'number') {
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    return null;
   };
 
-  const formatDateTime = (ts: any) => {
-    if (!ts) return '-';
-    try {
-      const d = ts?.toDate ? ts.toDate() : new Date(ts);
-      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '-';
-    }
+  const formatDateRange = (start: unknown, end: unknown) => {
+    const s = toSafeDate(start);
+    const e = toSafeDate(end);
+    if (!s || !e) return '-';
+    return `${s.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${e.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  };
+
+  const formatDateTime = (ts: unknown) => {
+    const d = toSafeDate(ts);
+    if (!d) return '-';
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   const startOfLocalDay = (date: Date) => {
@@ -353,8 +385,9 @@ export default function AdminPage() {
       setHouseModalMode(null);
       setActiveHouse(null);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal menyimpan rumah: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal menyimpan rumah: ${msg}`, 'error');
     }
   };
 
@@ -366,8 +399,9 @@ export default function AdminPage() {
       });
       showNotification('Status rumah diperbarui!');
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal mengubah status: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal mengubah status: ${msg}`, 'error');
     }
   };
 
@@ -472,8 +506,9 @@ export default function AdminPage() {
       setPeriodModalMode(null);
       setActivePeriod(null);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal menyimpan periode: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal menyimpan periode: ${msg}`, 'error');
     }
   };
 
@@ -483,8 +518,9 @@ export default function AdminPage() {
       await updateDoc(doc(db, 'periods', id), { status: nextStatus });
       showNotification(`Periode diubah menjadi ${nextStatus === 'active' ? 'Aktif' : 'Arsip'}.`);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal update periode: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal update periode: ${msg}`, 'error');
     }
   };
 
@@ -519,10 +555,10 @@ export default function AdminPage() {
       await batch.commit();
       showNotification('24 periode baru berhasil dibuat!');
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal membuat batch periode: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal membuat batch periode: ${msg}`, 'error');
     } finally {
-      setIsBatchCreatingPeriods(false);
     }
   };
 
@@ -811,11 +847,11 @@ export default function AdminPage() {
       a.click();
       URL.revokeObjectURL(url);
       showNotification('Backup data JSON berhasil diunduh!');
-    } catch (err: any) {
-      showNotification(`Gagal export JSON: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal export JSON: ${msg}`, 'error');
     }
   };
-
   // -------------------------------------------------------------
   // FILTERED DATA
   // -------------------------------------------------------------
@@ -1218,9 +1254,11 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => {
+                      const targetP = periods.find(p => p.status === 'active');
                       setActivePayment({
                         houseId: houses.find(h => h.isActive)?.id || '',
-                        periodId: periods.find(p => p.status === 'active')?.id || '',
+                        periodId: targetP?.id || '',
+                        amount: targetP?.amount || 0,
                         extraAmount: 0,
                       });
                       setPaymentModalMode('create');
@@ -1364,7 +1402,7 @@ export default function AdminPage() {
                   </div>
                   <select
                     value={houseFilter}
-                    onChange={e => setHouseFilter(e.target.value as any)}
+                    onChange={e => setHouseFilter(e.target.value as 'all' | 'active' | 'inactive')}
                     className="py-2.5 px-3 rounded-xl border border-black/8 bg-white text-xs font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">Semua Status ({houses.length})</option>
@@ -1486,7 +1524,7 @@ export default function AdminPage() {
                   </div>
                   <select
                     value={periodFilter}
-                    onChange={e => setPeriodFilter(e.target.value as any)}
+                    onChange={e => setPeriodFilter(e.target.value as 'all' | 'active' | 'archived')}
                     className="py-2.5 px-3 rounded-xl border border-black/8 bg-white text-xs font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">Semua Status ({periods.length})</option>
@@ -1625,7 +1663,7 @@ export default function AdminPage() {
                   </div>
                   <select
                     value={paymentFilter}
-                    onChange={e => setPaymentFilter(e.target.value as any)}
+                    onChange={e => setPaymentFilter(e.target.value as 'all' | 'paid' | 'cancelled')}
                     className="py-2.5 px-3 rounded-xl border border-black/8 bg-white text-xs font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">Semua Status ({payments.length})</option>
@@ -1636,12 +1674,13 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => {
+                    const targetP = periods.find(p => p.status === 'active');
                     setActivePayment({
                       houseId: houses.find(h => h.isActive)?.id || '',
-                      periodId: periods.find(p => p.status === 'active')?.id || '',
+                      periodId: targetP?.id || '',
+                      amount: targetP?.amount || 0,
                       extraAmount: 0,
                     });
-                    setPaymentModalMode('create');
                   }}
                   className="px-4 py-2.5 rounded-xl bg-primary text-[#000000] font-bold text-xs flex items-center gap-1.5 shadow-xs active:scale-[0.98] transition-transform"
                 >
@@ -1771,7 +1810,7 @@ export default function AdminPage() {
                   </div>
                   <select
                     value={txFilterType}
-                    onChange={e => setTxFilterType(e.target.value as any)}
+                    onChange={e => setTxFilterType(e.target.value as 'all' | 'income' | 'expense')}
                     className="py-2.5 px-3 rounded-xl border border-black/8 bg-white text-xs font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">Semua Tipe</option>
@@ -1896,7 +1935,7 @@ export default function AdminPage() {
                   </div>
                   <select
                     value={userRoleFilter}
-                    onChange={e => setUserRoleFilter(e.target.value as any)}
+                    onChange={e => setUserRoleFilter(e.target.value as 'all' | 'admin' | 'petugas' | 'warga')}
                     className="py-2.5 px-3 rounded-xl border border-black/8 bg-white text-xs font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">Semua Role ({users.length})</option>
@@ -2422,11 +2461,14 @@ export default function AdminPage() {
                   <label className="block text-xs font-semibold text-foreground/80 mb-1">Tipe Transaksi</label>
                   <select
                     value={activeTx.type || 'income'}
-                    onChange={e => setActiveTx({
-                      ...activeTx,
-                      type: e.target.value,
-                      category: e.target.value === 'income' ? 'donation' : 'operational',
-                    })}
+                    onChange={e => {
+                      const nextType = e.target.value as 'income' | 'expense';
+                      setActiveTx({
+                        ...activeTx,
+                        type: nextType,
+                        category: nextType === 'income' ? 'donation' : 'operational',
+                      });
+                    }}
                     className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-semibold focus:outline-none"
                   >
                     <option value="income">Pemasukan (+)</option>

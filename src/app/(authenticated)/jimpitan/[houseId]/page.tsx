@@ -225,7 +225,7 @@ export default function HouseDetailPage() {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-background p-4 text-center">
         <h2 className="text-xl font-bold text-gray-800 mb-2">Data Rumah Tidak Ditemukan</h2>
-        <button onClick={() => router.back()} className="text-secondary font-medium">Kembali</button>
+        <button type="button" onClick={() => router.back()} className="text-secondary font-medium">Kembali</button>
       </div>
     );
   }
@@ -245,6 +245,7 @@ export default function HouseDetailPage() {
           style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
         >
           <button
+            type="button"
             onClick={() => router.back()}
             className="w-9 h-9 rounded-xl bg-white border border-black/8 flex items-center justify-center active:scale-95 flex-shrink-0"
           >
@@ -273,6 +274,7 @@ export default function HouseDetailPage() {
                 {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
               </div>
               <button
+                type="button"
                 onClick={() => setShowQRModal(true)}
                 className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary active:bg-primary/20 flex-shrink-0"
                 aria-label="Tampilkan QR"
@@ -310,6 +312,7 @@ export default function HouseDetailPage() {
 
               return (
                 <button 
+                  type="button"
                   key={period.id} 
                   id={active ? 'active-period' : undefined}
                   onClick={() => togglePeriod(period)} 
@@ -377,6 +380,7 @@ export default function HouseDetailPage() {
               <p className="text-base font-bold text-foreground">Rp {formatRupiah(selectedAmount)}</p>
             </div>
             <button 
+              type="button"
               onClick={() => setShowPaymentModal(true)}
               className="bg-primary text-[#000000] px-6 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
             >
@@ -408,6 +412,7 @@ export default function HouseDetailPage() {
             
             <div className="flex gap-3">
               <button 
+                type="button"
                 onClick={() => setShowPaymentModal(false)}
                 disabled={isPaying}
                 className="flex-1 py-3.5 px-4 bg-black/5 text-foreground font-bold rounded-xl text-sm"
@@ -415,6 +420,7 @@ export default function HouseDetailPage() {
                 Batal
               </button>
               <button 
+                type="button"
                 onClick={handlePayment}
                 disabled={isPaying}
                 className="flex-1 py-3.5 px-4 bg-primary text-[#000000] font-bold rounded-xl shadow-sm text-sm flex items-center justify-center"
@@ -450,6 +456,7 @@ export default function HouseDetailPage() {
             
             <div className="flex gap-3">
               <button 
+                type="button"
                 onClick={() => setShowCancelModal({show: false, payment: null, period: null})}
                 disabled={isCancelling}
                 className="flex-1 py-3.5 px-4 bg-black/5 text-foreground font-bold rounded-xl text-sm"
@@ -457,6 +464,7 @@ export default function HouseDetailPage() {
                 Kembali
               </button>
               <button 
+                type="button"
                 onClick={handleCancel}
                 disabled={isCancelling}
                 className="flex-1 py-3.5 px-4 bg-red-600 text-white font-bold rounded-xl shadow-sm text-sm flex items-center justify-center"
@@ -479,6 +487,7 @@ export default function HouseDetailPage() {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-foreground">QR Code Rumah</h3>
               <button 
+                type="button"
                 onClick={() => setShowQRModal(false)}
                 className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-foreground/50 active:scale-95"
               >
@@ -501,6 +510,7 @@ export default function HouseDetailPage() {
             </div>
             
             <button 
+              type="button"
               onClick={downloadQRCode}
               className="w-full flex items-center justify-center gap-2 bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base shadow-[0_4px_14px_rgba(245,181,83,0.4)] active:scale-[0.98] transition-transform"
             >

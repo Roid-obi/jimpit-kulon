@@ -141,6 +141,7 @@ export default function LaporanPage() {
       <div className="px-4 pb-24">
         <div className="flex gap-1 p-1 bg-black/5 rounded-xl mb-6">
         <button
+          type="button"
           onClick={() => setActiveTab('jimpitan')}
           className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
             activeTab === 'jimpitan' ? 'bg-white shadow-sm text-foreground' : 'text-foreground/50'
@@ -149,6 +150,7 @@ export default function LaporanPage() {
           Laporan Jimpitan
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('keuangan')}
           className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
             activeTab === 'keuangan' ? 'bg-white shadow-sm text-foreground' : 'text-foreground/50'
