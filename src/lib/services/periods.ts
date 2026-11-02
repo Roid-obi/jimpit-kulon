@@ -1,17 +1,13 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
-  getDoc,
   getDocs,
   getFirestore,
-  limit,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
-  where,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import type { Period } from "@/types/jimpitan";
@@ -82,8 +78,5 @@ export async function updatePeriod(
   await updateDoc(docRef, data);
 }
 
-export async function deletePeriod(id: string): Promise<void> {
-  const docRef = doc(db, "periods", id);
-  await deleteDoc(docRef);
-}
+
 

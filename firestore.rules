@@ -24,33 +24,44 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if (isAuthenticated() && request.auth.uid == userId) || isPetugas();
       allow create: if isAuthenticated() && ((request.auth.uid == userId && request.resource.data.role == 'petugas') || isAdmin());
-      allow update, delete: if isAdmin();
+      // Admin update: cannot demote own role or deactivate own account
+      allow update: if isAdmin() && (
+        request.auth.uid != userId || (
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.isActive == resource.data.isActive
+        )
+      );
+      // Admin delete: cannot delete own account
+      allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     // Houses Collection
     match /houses/{houseId} {
-      allow read: if isPetugas(); // admin and petugas can read
-      allow write: if isAdmin();
+      allow read: if isPetugas();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     // Periods Collection
     match /periods/{periodId} {
       allow read: if isPetugas();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
 
     // Payments Collection
     match /payments/{paymentId} {
       allow read: if isPetugas();
       allow create: if isPetugas();
-      allow update, delete: if isAdmin(); // only admin can correct/delete payments
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
     // Financial Transactions Collection
     match /financial_transactions/{transactionId} {
       allow read: if isPetugas();
       allow create: if isPetugas();
-      allow update, delete: if isAdmin(); // only admin can correct/delete transactions
+      allow update, delete: if false;
     }
 
     // Settings Collection

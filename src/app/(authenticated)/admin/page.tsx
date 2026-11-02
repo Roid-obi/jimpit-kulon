@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import type { House, Period, Payment, FinancialTransaction } from '@/types/jimpitan';
 import type { AppUser } from '@/lib/services/users';
+import { createAdminUser, updateAdminUser, deleteAdminUser } from '@/lib/services/users';
+import { cancelPayment, recordPayment } from '@/lib/services/payments';
 
 const db = getFirestore(app);
 
@@ -74,22 +76,25 @@ export default function AdminPage() {
   const [isBatchCreatingPeriods, setIsBatchCreatingPeriods] = useState(false);
 
   // 3. Payment Modals
-  const [paymentModalMode, setPaymentModalMode] = useState<'create' | 'edit' | null>(null);
+  const [paymentModalMode, setPaymentModalMode] = useState<'create' | null>(null);
   const [activePayment, setActivePayment] = useState<any | null>(null);
 
   // 4. Transaction Modals
-  const [txModalMode, setTxModalMode] = useState<'create' | 'edit' | null>(null);
+  const [txModalMode, setTxModalMode] = useState<'create' | null>(null);
   const [activeTx, setActiveTx] = useState<any | null>(null);
 
   // 5. User Modals
   const [userModalMode, setUserModalMode] = useState<'create' | 'edit' | null>(null);
   const [activeUser, setActiveUser] = useState<Partial<AppUser> | null>(null);
+  const [userPassword, setUserPassword] = useState('');
+  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
 
   // 6. Delete Confirmation Modal
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     title: string;
     description: string;
+    confirmLabel?: string;
     onConfirm: () => Promise<void>;
   }>({
     isOpen: false,
@@ -207,6 +212,54 @@ export default function AdminPage() {
     }
   };
 
+  const startOfLocalDay = (date: Date) => {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
+  };
+
+  const addDays = (date: Date, days: number) => {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  };
+
+  const toDateInput = (date: Date) => {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  };
+
+  const parseDateInput = (value: string) => {
+    const parts = value.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    return Number.isNaN(date.getTime()) ? null : startOfLocalDay(date);
+  };
+
+  const calendarDayDiff = (start: Date, end: Date) => {
+    const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    return Math.round((endUtc - startUtc) / 86400000);
+  };
+
+  const rangesOverlap = (startA: Date, endA: Date, startB: Date, endB: Date) => {
+    return startA.getTime() <= endB.getTime() && startB.getTime() <= endA.getTime();
+  };
+
+  const getNextPeriodStart = () => {
+    if (periods.length === 0) return startOfLocalDay(new Date());
+    const latestEnd = periods.reduce((max, period) => {
+      const end = period.endDate?.toDate ? period.endDate.toDate() : null;
+      return end && end.getTime() > max.getTime() ? end : max;
+    }, new Date(0));
+    return latestEnd.getTime() > 0 ? addDays(startOfLocalDay(latestEnd), 1) : startOfLocalDay(new Date());
+  };
+
+  const getLatestPeriodAmount = () => {
+    if (periods.length === 0) return 3500;
+    return periods.reduce((prev, curr) => (prev.periodNumber > curr.periodNumber ? prev : curr)).amount || 3500;
+  };
+
   // QR Code PNG Downloader
   const downloadQRCode = () => {
     if (!selectedHouseForQR) return;
@@ -252,31 +305,49 @@ export default function AdminPage() {
     e.preventDefault();
     if (!activeHouse) return;
 
+    const houseNumber = activeHouse.houseNumber?.trim() || '';
+    const headOfFamily = activeHouse.headOfFamily?.trim() || '';
+    const address = activeHouse.address?.trim() || '';
+
+    if (!houseNumber || !headOfFamily || !address) {
+      showNotification('Nomor rumah, kepala keluarga, dan alamat wajib diisi.', 'error');
+      return;
+    }
+
+    const duplicate = houses.some(
+      house => house.id !== activeHouse.id &&
+        house.houseNumber.trim().toLowerCase() === houseNumber.toLowerCase()
+    );
+    if (duplicate) {
+      showNotification(`Nomor rumah ${houseNumber} sudah dipakai.`, 'error');
+      return;
+    }
+
     try {
       if (houseModalMode === 'create') {
         const docRef = await addDoc(collection(db, 'houses'), {
-          houseNumber: activeHouse.houseNumber?.trim() || '',
-          headOfFamily: activeHouse.headOfFamily?.trim() || '',
-          address: activeHouse.address?.trim() || '',
+          houseNumber,
+          headOfFamily,
+          address,
           notes: activeHouse.notes?.trim() || null,
           isActive: activeHouse.isActive ?? true,
           qrCode: '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        const qrValue = `RUMAH-${activeHouse.houseNumber?.trim() || docRef.id}`;
+        const qrValue = `RUMAH-${houseNumber || docRef.id}`;
         await updateDoc(doc(db, 'houses', docRef.id), { qrCode: qrValue });
-        showNotification(`Rumah ${activeHouse.houseNumber} berhasil ditambahkan!`);
+        showNotification(`Rumah ${houseNumber} berhasil ditambahkan!`);
       } else if (houseModalMode === 'edit' && activeHouse.id) {
         await updateDoc(doc(db, 'houses', activeHouse.id), {
-          houseNumber: activeHouse.houseNumber?.trim() || '',
-          headOfFamily: activeHouse.headOfFamily?.trim() || '',
-          address: activeHouse.address?.trim() || '',
+          houseNumber,
+          headOfFamily,
+          address,
           notes: activeHouse.notes?.trim() || null,
           isActive: activeHouse.isActive ?? true,
           updatedAt: serverTimestamp(),
         });
-        showNotification(`Rumah ${activeHouse.houseNumber} berhasil diperbarui!`);
+        showNotification(`Rumah ${houseNumber} berhasil diperbarui!`);
       }
       setHouseModalMode(null);
       setActiveHouse(null);
@@ -299,59 +370,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteHouse = (house: House) => {
-    setDeleteDialog({
-      isOpen: true,
-      title: `Hapus Rumah No. ${house.houseNumber}?`,
-      description: `Data rumah milik ${house.headOfFamily} akan dihapus dari sistem. Pastikan data sudah diverifikasi.`,
-      onConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, 'houses', house.id));
-          showNotification(`Rumah ${house.houseNumber} berhasil dihapus.`);
-          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
-          await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal menghapus rumah: ${err.message}`, 'error');
-        }
-      },
-    });
-  };
-
-  const handleSeedHouses = async () => {
-    if (!window.confirm('Tambah 10 data rumah contoh ke database?')) return;
-    setLoading(true);
-    try {
-      const sample = [
-        { houseNumber: '001', headOfFamily: 'Bapak Suharto', address: 'RT 05 No. 1' },
-        { houseNumber: '002', headOfFamily: 'Bapak Sudirman', address: 'RT 05 No. 2' },
-        { houseNumber: '003', headOfFamily: 'Bapak Wahyu Santoso', address: 'RT 05 No. 3' },
-        { houseNumber: '004', headOfFamily: 'Bapak Agus Purnomo', address: 'RT 05 No. 4' },
-        { houseNumber: '005', headOfFamily: 'Bapak Eko Prasetyo', address: 'RT 05 No. 5' },
-        { houseNumber: '006', headOfFamily: 'Ibu Siti Rahayu', address: 'RT 05 No. 6' },
-        { houseNumber: '007', headOfFamily: 'Bapak Joko Widodo', address: 'RT 05 No. 7' },
-        { houseNumber: '008', headOfFamily: 'Bapak Bambang Sutrisno', address: 'RT 05 No. 8' },
-        { houseNumber: '009', headOfFamily: 'Ibu Dewi Lestari', address: 'RT 05 No. 9' },
-        { houseNumber: '010', headOfFamily: 'Bapak Hendra Gunawan', address: 'RT 05 No. 10' },
-      ];
-      for (const r of sample) {
-        await addDoc(collection(db, 'houses'), {
-          ...r,
-          qrCode: `RUMAH-${r.houseNumber}`,
-          notes: null,
-          isActive: true,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
-      showNotification('10 data rumah contoh berhasil ditambahkan!');
-      await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal menambah data contoh: ${err.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // -------------------------------------------------------------
   // CRUD ACTIONS: PERIODE (PERIODS)
   // -------------------------------------------------------------
@@ -359,34 +377,95 @@ export default function AdminPage() {
     e.preventDefault();
     if (!activePeriod) return;
 
-    try {
-      const startDateObj = new Date(activePeriod.startDateStr);
-      const endDateObj = new Date(activePeriod.endDateStr);
+    const periodNumber = Number(activePeriod.periodNumber);
+    const amount = Number(activePeriod.amount);
+    const startDateObj = parseDateInput(activePeriod.startDateStr || '');
+    const endDateObj = parseDateInput(activePeriod.endDateStr || '');
 
-      if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-        showNotification('Format tanggal tidak valid', 'error');
+    if (!startDateObj || !endDateObj) {
+      showNotification('Format tanggal tidak valid.', 'error');
+      return;
+    }
+    if (!Number.isInteger(periodNumber) || periodNumber <= 0) {
+      showNotification('Nomor periode harus bilangan bulat positif.', 'error');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showNotification('Nominal periode harus lebih dari 0.', 'error');
+      return;
+    }
+    if (calendarDayDiff(startDateObj, endDateObj) !== 6) {
+      showNotification('Satu periode harus tepat 7 hari inklusif (selisih 6 hari).', 'error');
+      return;
+    }
+
+    const existingPeriod = activePeriod.id ? periodMap.get(activePeriod.id) : undefined;
+    const hasPayments = activePeriod.id
+      ? payments.some(payment => payment.periodId === activePeriod.id)
+      : false;
+    const existingStart = existingPeriod?.startDate?.toDate?.();
+    const existingEnd = existingPeriod?.endDate?.toDate?.();
+    const unchanged = Boolean(
+      existingPeriod &&
+      existingStart &&
+      existingEnd &&
+      existingPeriod.periodNumber === periodNumber &&
+      Number(existingPeriod.amount) === amount &&
+      existingStart.getTime() === startDateObj.getTime() &&
+      existingEnd.getTime() === endDateObj.getTime()
+    );
+
+    if (hasPayments && !unchanged) {
+      showNotification('Periode ini sudah memiliki pembayaran. Hanya status arsip yang dapat diubah.', 'error');
+      return;
+    }
+
+    if (!hasPayments) {
+      const duplicateNumber = periods.some(
+        period => period.id !== activePeriod.id && period.periodNumber === periodNumber
+      );
+      if (duplicateNumber) {
+        showNotification(`Nomor periode #${periodNumber} sudah dipakai.`, 'error');
         return;
       }
 
+      const overlappingPeriod = periods.find(period => {
+        if (period.id === activePeriod.id) return false;
+        const start = period.startDate?.toDate?.();
+        const end = period.endDate?.toDate?.();
+        return Boolean(start && end && rangesOverlap(startDateObj, endDateObj, start, end));
+      });
+      if (overlappingPeriod) {
+        showNotification(
+          `Rentang bertabrakan dengan Periode #${overlappingPeriod.periodNumber}.`,
+          'error'
+        );
+        return;
+      }
+    }
+
+    const status = activePeriod.status === 'archived' ? 'archived' : 'active';
+
+    try {
       if (periodModalMode === 'create') {
         await addDoc(collection(db, 'periods'), {
-          periodNumber: Number(activePeriod.periodNumber),
+          periodNumber,
           startDate: Timestamp.fromDate(startDateObj),
           endDate: Timestamp.fromDate(endDateObj),
-          amount: Number(activePeriod.amount) || 3500,
-          status: activePeriod.status || 'active',
+          amount,
+          status,
           createdAt: serverTimestamp(),
         });
-        showNotification(`Periode ${activePeriod.periodNumber} berhasil dibuat!`);
+        showNotification(`Periode #${periodNumber} berhasil dibuat!`);
       } else if (periodModalMode === 'edit' && activePeriod.id) {
         await updateDoc(doc(db, 'periods', activePeriod.id), {
-          periodNumber: Number(activePeriod.periodNumber),
+          periodNumber,
           startDate: Timestamp.fromDate(startDateObj),
           endDate: Timestamp.fromDate(endDateObj),
-          amount: Number(activePeriod.amount) || 3500,
-          status: activePeriod.status || 'active',
+          amount,
+          status,
         });
-        showNotification(`Periode ${activePeriod.periodNumber} berhasil diperbarui!`);
+        showNotification(`Periode #${periodNumber} berhasil diperbarui!`);
       }
 
       setPeriodModalMode(null);
@@ -408,106 +487,39 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeletePeriod = (period: Period) => {
-    setDeleteDialog({
-      isOpen: true,
-      title: `Hapus Periode Ke-${period.periodNumber}?`,
-      description: `Menghapus periode ini akan menghapus referensi jadwal tagihan jimpitan terkait. Lanjutkan?`,
-      onConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, 'periods', period.id));
-          showNotification(`Periode ${period.periodNumber} berhasil dihapus.`);
-          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
-          await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal menghapus periode: ${err.message}`, 'error');
-        }
-      },
-    });
-  };
-
   const handleCreate24Periods = async () => {
-    if (!window.confirm('Buat 24 Periode Otomatis (6 Bulan ke depan)?')) return;
+    if (!window.confirm('Buat 24 periode berurutan, masing-masing 7 hari inklusif?')) return;
     setIsBatchCreatingPeriods(true);
     try {
-      let latestPeriodNum = periods.length > 0 ? Math.max(...periods.map(p => p.periodNumber || 0)) : 0;
-      let baseDate = new Date();
-      if (periods.length > 0) {
-        const latestPeriod = periods.reduce((prev, curr) => (prev.periodNumber > curr.periodNumber ? prev : curr));
-        if (latestPeriod?.endDate?.toDate) {
-          baseDate = latestPeriod.endDate.toDate();
-        }
-      }
+      let nextPeriodNumber = periods.length > 0
+        ? Math.max(...periods.map(period => period.periodNumber || 0)) + 1
+        : 1;
+      const amount = getLatestPeriodAmount();
+      let cursor = getNextPeriodStart();
+      const batch = writeBatch(db);
 
       for (let i = 0; i < 24; i++) {
-        const startDate = new Date(baseDate);
-        const endDate = new Date(baseDate);
-        endDate.setDate(endDate.getDate() + 7);
-
-        await addDoc(collection(db, 'periods'), {
-          periodNumber: latestPeriodNum + 1,
+        const startDate = new Date(cursor);
+        const endDate = addDays(startDate, 6);
+        const periodRef = doc(collection(db, 'periods'));
+        batch.set(periodRef, {
+          periodNumber: nextPeriodNumber,
           startDate: Timestamp.fromDate(startDate),
           endDate: Timestamp.fromDate(endDate),
-          amount: 3500,
+          amount,
           status: 'active',
           createdAt: serverTimestamp(),
         });
 
-        baseDate = endDate;
-        latestPeriodNum++;
+        cursor = addDays(startDate, 7);
+        nextPeriodNumber++;
       }
-      showNotification('24 Periode baru berhasil dibuat!');
+
+      await batch.commit();
+      showNotification('24 periode baru berhasil dibuat!');
       await fetchAllData();
     } catch (err: any) {
       showNotification(`Gagal membuat batch periode: ${err.message}`, 'error');
-    } finally {
-      setIsBatchCreatingPeriods(false);
-    }
-  };
-
-  const handleSeedPeriodsRealtime = async () => {
-    if (!window.confirm('Peringatan: Ini akan me-reset periode & pembayaran yang ada, lalu membuat 30 periode dummy sesuai waktu sekarang. Lanjut?')) return;
-    setIsBatchCreatingPeriods(true);
-    try {
-      const paymentsSnap = await getDocs(collection(db, 'payments'));
-      const batch1 = writeBatch(db);
-      paymentsSnap.docs.forEach(d => batch1.delete(d.ref));
-      await batch1.commit();
-
-      const periodsSnap = await getDocs(collection(db, 'periods'));
-      const batch2 = writeBatch(db);
-      periodsSnap.docs.forEach(d => batch2.delete(d.ref));
-      await batch2.commit();
-
-      const batch3 = writeBatch(db);
-      const now = new Date();
-      const baseDate = new Date(now);
-      baseDate.setDate(now.getDate() - (10 * 7) - 3);
-      baseDate.setHours(0, 0, 0, 0);
-
-      for (let i = 1; i <= 30; i++) {
-        const startDate = new Date(baseDate);
-        const endDate = new Date(baseDate);
-        endDate.setDate(endDate.getDate() + 7);
-
-        const periodRef = doc(collection(db, 'periods'));
-        batch3.set(periodRef, {
-          periodNumber: i,
-          startDate: Timestamp.fromDate(startDate),
-          endDate: Timestamp.fromDate(endDate),
-          amount: 3500,
-          status: 'active',
-          createdAt: serverTimestamp(),
-        });
-
-        baseDate.setDate(baseDate.getDate() + 7);
-      }
-
-      await batch3.commit();
-      showNotification('Periode disesuaikan dengan waktu realtime!');
-      await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal reset periode realtime: ${err.message}`, 'error');
     } finally {
       setIsBatchCreatingPeriods(false);
     }
@@ -520,74 +532,51 @@ export default function AdminPage() {
     e.preventDefault();
     if (!activePayment) return;
 
+    const targetHouse = houseMap.get(activePayment.houseId);
+    const targetPeriod = periodMap.get(activePayment.periodId);
+
+    if (!targetHouse || !targetPeriod) {
+      showNotification('Rumah dan periode wajib dipilih.', 'error');
+      return;
+    }
+    if (!targetHouse.isActive) {
+      showNotification('Rumah nonaktif tidak dapat dicatat pembayarannya.', 'error');
+      return;
+    }
+    if (targetPeriod.status !== 'active') {
+      showNotification('Periode arsip tidak dapat dicatat pembayarannya.', 'error');
+      return;
+    }
+    if (!user?.uid) {
+      showNotification('Sesi admin tidak ditemukan. Silakan login ulang.', 'error');
+      return;
+    }
+
+    const standardAmt = Number(targetPeriod.amount);
+    const extraAmt = Number(activePayment.extraAmount) || 0;
+    if (!Number.isFinite(standardAmt) || standardAmt <= 0) {
+      showNotification('Nominal periode tidak valid.', 'error');
+      return;
+    }
+    if (!Number.isFinite(extraAmt) || extraAmt < 0) {
+      showNotification('Nominal donasi tidak valid.', 'error');
+      return;
+    }
+
     try {
-      if (paymentModalMode === 'create') {
-        const targetHouseId = activePayment.houseId;
-        const targetPeriodId = activePayment.periodId;
-        const standardAmt = Number(activePayment.amount) || 3500;
-        const extraAmt = Number(activePayment.extraAmount) || 0;
-        const paidByUid = activePayment.paidBy || user?.uid || 'admin';
-
-        const isDuplicate = payments.some(p => p.houseId === targetHouseId && p.periodId === targetPeriodId && p.status === 'paid');
-        if (isDuplicate) {
-          showNotification('Rumah ini sudah lunas untuk periode tersebut!', 'error');
-          return;
-        }
-
-        const batch = writeBatch(db);
-        const paymentRef = doc(collection(db, 'payments'));
-        batch.set(paymentRef, {
-          houseId: targetHouseId,
-          periodId: targetPeriodId,
-          paidBy: paidByUid,
-          paidAt: serverTimestamp(),
-          status: 'paid',
-          createdAt: serverTimestamp(),
-        });
-
-        const txIncomeRef = doc(collection(db, 'financial_transactions'));
-        batch.set(txIncomeRef, {
-          type: 'income',
-          category: 'payment',
-          amount: standardAmt,
-          description: `Pembayaran jimpitan Rumah ${houseMap.get(targetHouseId)?.houseNumber || ''}`,
-          houseId: targetHouseId,
-          paymentId: paymentRef.id,
-          takenBy: null,
-          createdBy: paidByUid,
-          createdAt: serverTimestamp(),
-        });
-
-        if (extraAmt > 0) {
-          const txExtraRef = doc(collection(db, 'financial_transactions'));
-          batch.set(txExtraRef, {
-            type: 'income',
-            category: 'donation',
-            amount: extraAmt,
-            description: `Kelebihan pembayaran / Donasi Rumah ${houseMap.get(targetHouseId)?.houseNumber || ''}`,
-            houseId: targetHouseId,
-            paymentId: paymentRef.id,
-            takenBy: null,
-            createdBy: paidByUid,
-            createdAt: serverTimestamp(),
-          });
-        }
-
-        await batch.commit();
-        showNotification('Pembayaran berhasil dicatat & masuk kas!');
-      } else if (paymentModalMode === 'edit' && activePayment.id) {
-        await updateDoc(doc(db, 'payments', activePayment.id), {
-          status: activePayment.status || 'paid',
-          paidBy: activePayment.paidBy || user?.uid,
-        });
-        showNotification('Data pembayaran diperbarui!');
-      }
-
+      await recordPayment({
+        houseId: targetHouse.id,
+        periodId: targetPeriod.id,
+        paidBy: user.uid,
+        standardAmount: standardAmt,
+        amount: standardAmt + extraAmt,
+      });
+      showNotification('Pembayaran berhasil dicatat & masuk kas!');
       setPaymentModalMode(null);
       setActivePayment(null);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal simpan pembayaran: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      showNotification(`Gagal simpan pembayaran: ${err instanceof Error ? err.message : 'Terjadi kesalahan.'}`, 'error');
     }
   };
 
@@ -595,56 +584,20 @@ export default function AdminPage() {
     setDeleteDialog({
       isOpen: true,
       title: 'Batalkan Pembayaran Ini?',
-      description: 'Pembayaran akan ditandai dibatalkan dan dibuatkan transaksi pengeluaran reversal pada kas.',
+      description: 'Pembayaran akan ditandai dibatalkan dan dibuatkan transaksi pengeluaran reversal pada kas. Tindakan ini tidak menghapus histori.',
+      confirmLabel: 'Ya, Batalkan',
       onConfirm: async () => {
+        if (!user?.uid) {
+          showNotification('Sesi admin tidak ditemukan. Silakan login ulang.', 'error');
+          return;
+        }
         try {
-          const relatedTxs = transactions.filter(t => t.paymentId === payment.id && t.type === 'income');
-          const totalAmt = relatedTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || 3500;
-
-          const batch = writeBatch(db);
-          batch.update(doc(db, 'payments', payment.id), {
-            status: 'cancelled',
-            cancelledAt: serverTimestamp(),
-            cancelledBy: user?.uid || 'admin',
-          });
-
-          const cancelTxRef = doc(collection(db, 'financial_transactions'));
-          batch.set(cancelTxRef, {
-            type: 'expense',
-            category: 'cancellation',
-            amount: totalAmt,
-            description: `Pembatalan pembayaran jimpitan Rumah ${houseMap.get(payment.houseId)?.houseNumber || ''}`,
-            houseId: payment.houseId,
-            paymentId: payment.id,
-            takenBy: null,
-            createdBy: user?.uid || 'admin',
-            createdAt: serverTimestamp(),
-          });
-
-          await batch.commit();
+          await cancelPayment(payment.id, user.uid);
           showNotification('Pembayaran dibatalkan & reversal dicatat!');
           setDeleteDialog(prev => ({ ...prev, isOpen: false }));
           await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal membatalkan: ${err.message}`, 'error');
-        }
-      },
-    });
-  };
-
-  const handleDeletePaymentPermanently = (payment: Payment) => {
-    setDeleteDialog({
-      isOpen: true,
-      title: 'Hapus Dokumen Pembayaran?',
-      description: 'Menghapus data pembayaran secara permanen dari database.',
-      onConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, 'payments', payment.id));
-          showNotification('Dokumen pembayaran dihapus permanen.');
-          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
-          await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal menghapus: ${err.message}`, 'error');
+        } catch (err: unknown) {
+          showNotification(`Gagal membatalkan: ${err instanceof Error ? err.message : 'Terjadi kesalahan.'}`, 'error');
         }
       },
     });
@@ -657,61 +610,55 @@ export default function AdminPage() {
     e.preventDefault();
     if (!activeTx) return;
 
+    const amount = Number(activeTx.amount);
+    const type = activeTx.type === 'expense' ? 'expense' : 'income';
+    const category = activeTx.category || 'other';
+    const description = activeTx.description?.trim() || '';
+    const takenBy = activeTx.takenBy?.trim() || '';
+    const allowedCategories = type === 'income'
+      ? ['donation', 'other']
+      : ['operational', 'social', 'maintenance', 'other'];
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showNotification('Nominal harus lebih dari 0.', 'error');
+      return;
+    }
+    if (!description) {
+      showNotification('Keterangan transaksi wajib diisi.', 'error');
+      return;
+    }
+    if (!allowedCategories.includes(category)) {
+      showNotification('Kategori transaksi manual tidak valid.', 'error');
+      return;
+    }
+    if (type === 'expense' && !takenBy) {
+      showNotification('Penerima dana wajib diisi untuk pengeluaran.', 'error');
+      return;
+    }
+    if (!user?.uid) {
+      showNotification('Sesi admin tidak ditemukan. Silakan login ulang.', 'error');
+      return;
+    }
+
     try {
-      const amount = Number(activeTx.amount) || 0;
-      if (amount <= 0) {
-        showNotification('Nominal harus lebih dari 0', 'error');
-        return;
-      }
-
-      if (txModalMode === 'create') {
-        await addDoc(collection(db, 'financial_transactions'), {
-          type: activeTx.type || 'income',
-          category: activeTx.category || 'other',
-          amount: amount,
-          description: activeTx.description?.trim() || '',
-          takenBy: activeTx.takenBy?.trim() || null,
-          houseId: activeTx.houseId || null,
-          paymentId: null,
-          createdBy: user?.uid || 'admin',
-          createdAt: serverTimestamp(),
-        });
-        showNotification('Transaksi kas berhasil dicatat!');
-      } else if (txModalMode === 'edit' && activeTx.id) {
-        await updateDoc(doc(db, 'financial_transactions', activeTx.id), {
-          type: activeTx.type,
-          category: activeTx.category,
-          amount: amount,
-          description: activeTx.description?.trim() || '',
-          takenBy: activeTx.takenBy?.trim() || null,
-        });
-        showNotification('Transaksi kas diperbarui!');
-      }
-
+      await addDoc(collection(db, 'financial_transactions'), {
+        type,
+        category,
+        amount,
+        description,
+        takenBy: type === 'expense' ? takenBy : null,
+        houseId: null,
+        paymentId: null,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+      });
+      showNotification('Transaksi kas berhasil dicatat!');
       setTxModalMode(null);
       setActiveTx(null);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal menyimpan transaksi: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      showNotification(`Gagal menyimpan transaksi: ${err instanceof Error ? err.message : 'Terjadi kesalahan.'}`, 'error');
     }
-  };
-
-  const handleDeleteTransaction = (tx: FinancialTransaction) => {
-    setDeleteDialog({
-      isOpen: true,
-      title: 'Hapus Transaksi Kas?',
-      description: `Hapus transaksi ${tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} Rp ${(tx.amount || 0).toLocaleString('id-ID')} (${tx.description})? Ini akan memengaruhi saldo total.`,
-      onConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, 'financial_transactions', tx.id));
-          showNotification('Transaksi keuangan dihapus.');
-          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
-          await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal menghapus transaksi: ${err.message}`, 'error');
-        }
-      },
-    });
   };
 
   // -------------------------------------------------------------
@@ -719,90 +666,105 @@ export default function AdminPage() {
   // -------------------------------------------------------------
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeUser) return;
+    if (!activeUser || !user) return;
 
+    setIsSubmittingUser(true);
     try {
+      const getIdToken = () => user.getIdToken();
+
       if (userModalMode === 'create') {
-        const userRef = doc(collection(db, 'users'));
-        await setDoc(userRef, {
+        await createAdminUser(getIdToken, {
           name: activeUser.name?.trim() || '',
           email: activeUser.email?.trim().toLowerCase() || '',
+          password: userPassword.trim(),
           role: activeUser.role || 'petugas',
           isActive: activeUser.isActive ?? true,
-          emailVerified: true,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
         });
         showNotification(`Pengguna ${activeUser.name} berhasil dibuat!`);
       } else if (userModalMode === 'edit' && activeUser.id) {
-        await updateDoc(doc(db, 'users', activeUser.id), {
+        await updateAdminUser(getIdToken, {
+          targetUserId: activeUser.id,
           name: activeUser.name?.trim() || '',
           role: activeUser.role || 'petugas',
           isActive: activeUser.isActive ?? true,
-          updatedAt: serverTimestamp(),
+          password: userPassword.trim() ? userPassword.trim() : undefined,
         });
         showNotification(`Data pengguna ${activeUser.name} diperbarui!`);
       }
 
       setUserModalMode(null);
       setActiveUser(null);
+      setUserPassword('');
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal menyimpan pengguna: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal menyimpan pengguna: ${message}`, 'error');
+    } finally {
+      setIsSubmittingUser(false);
     }
   };
 
   const handleToggleUserActive = async (targetUser: AppUser) => {
-    if (targetUser.id === user?.uid) {
-      showNotification('Tidak dapat menonaktifkan akun sendiri!', 'error');
+    if (!user) return;
+    if (targetUser.id === user.uid) {
+      showNotification('Pencegahan keamanan: Tidak dapat menonaktifkan akun sendiri!', 'error');
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', targetUser.id), {
+      const getIdToken = () => user.getIdToken();
+      await updateAdminUser(getIdToken, {
+        targetUserId: targetUser.id,
         isActive: !targetUser.isActive,
-        updatedAt: serverTimestamp(),
       });
       showNotification(`Status pengguna ${targetUser.name} diperbarui.`);
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal update status: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal update status: ${message}`, 'error');
     }
   };
 
-  const handleChangeUserRole = async (targetUserId: string, newRole: string) => {
-    if (targetUserId === user?.uid) {
-      showNotification('Tidak dapat mengubah role akun sendiri!', 'error');
+  const handleChangeUserRole = async (targetUserId: string, newRole: 'admin' | 'petugas' | 'warga') => {
+    if (!user) return;
+    if (targetUserId === user.uid) {
+      showNotification('Pencegahan keamanan: Tidak dapat mengubah role akun sendiri!', 'error');
       return;
     }
     try {
-      await updateDoc(doc(db, 'users', targetUserId), {
+      const getIdToken = () => user.getIdToken();
+      await updateAdminUser(getIdToken, {
+        targetUserId,
         role: newRole,
-        updatedAt: serverTimestamp(),
       });
       showNotification('Role pengguna berhasil diubah!');
       await fetchAllData();
-    } catch (err: any) {
-      showNotification(`Gagal mengubah role: ${err.message}`, 'error');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal mengubah role: ${message}`, 'error');
     }
   };
 
   const handleDeleteUser = (targetUser: AppUser) => {
-    if (targetUser.id === user?.uid) {
-      showNotification('Tidak dapat menghapus akun sendiri!', 'error');
+    if (!user) return;
+    if (targetUser.id === user.uid) {
+      showNotification('Pencegahan keamanan: Tidak dapat menghapus akun sendiri!', 'error');
       return;
     }
     setDeleteDialog({
       isOpen: true,
       title: `Hapus Akun ${targetUser.name}?`,
-      description: `Menghapus dokumen data user (${targetUser.email}) dari database Firestore.`,
+      description: `Akun (${targetUser.email}) akan dihapus permanen dari Firebase Auth dan database Firestore.`,
+      confirmLabel: 'Ya, Hapus Pengguna',
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, 'users', targetUser.id));
-          showNotification(`Pengguna ${targetUser.name} dihapus.`);
+          const getIdToken = () => user.getIdToken();
+          await deleteAdminUser(getIdToken, targetUser.id);
+          showNotification(`Pengguna ${targetUser.name} berhasil dihapus.`);
           setDeleteDialog(prev => ({ ...prev, isOpen: false }));
           await fetchAllData();
-        } catch (err: any) {
-          showNotification(`Gagal menghapus pengguna: ${err.message}`, 'error');
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+          showNotification(`Gagal menghapus pengguna: ${message}`, 'error');
         }
       },
     });
@@ -874,6 +836,10 @@ export default function AdminPage() {
       return matchSearch && matchStatus;
     });
   }, [periods, periodSearch, periodFilter]);
+
+  const editingPeriodHasPayments = Boolean(
+    activePeriod?.id && payments.some(payment => payment.periodId === activePeriod.id)
+  );
 
   const filteredPayments = useMemo(() => {
     return payments.filter(p => {
@@ -1232,14 +1198,13 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       const nextNum = periods.length > 0 ? Math.max(...periods.map(p => p.periodNumber || 0)) + 1 : 1;
-                      const now = new Date();
-                      const nextWeek = new Date();
-                      nextWeek.setDate(now.getDate() + 7);
+                      const start = getNextPeriodStart();
+                      const end = addDays(start, 6);
                       setActivePeriod({
                         periodNumber: nextNum,
-                        startDateStr: now.toISOString().slice(0, 10),
-                        endDateStr: nextWeek.toISOString().slice(0, 10),
-                        amount: 3500,
+                        startDateStr: toDateInput(start),
+                        endDateStr: toDateInput(end),
+                        amount: getLatestPeriodAmount(),
                         status: 'active',
                       });
                       setPeriodModalMode('create');
@@ -1253,11 +1218,9 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       setActivePayment({
-                        houseId: houses[0]?.id || '',
-                        periodId: periods[0]?.id || '',
-                        amount: 3500,
+                        houseId: houses.find(h => h.isActive)?.id || '',
+                        periodId: periods.find(p => p.status === 'active')?.id || '',
                         extraAmount: 0,
-                        paidBy: user?.uid || '',
                       });
                       setPaymentModalMode('create');
                     }}
@@ -1411,13 +1374,6 @@ export default function AdminPage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleSeedHouses}
-                    disabled={loading}
-                    className="px-3.5 py-2.5 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-foreground text-xs font-semibold transition-colors"
-                  >
-                    + 10 Data Contoh
-                  </button>
-                  <button
                     onClick={() => {
                       setActiveHouse({ houseNumber: '', headOfFamily: '', address: '', notes: '', isActive: true });
                       setHouseModalMode('create');
@@ -1491,13 +1447,6 @@ export default function AdminPage() {
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
-                              <button
-                                onClick={() => handleDeleteHouse(house)}
-                                className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                                title="Hapus Rumah"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1547,13 +1496,6 @@ export default function AdminPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={handleSeedPeriodsRealtime}
-                    disabled={isBatchCreatingPeriods}
-                    className="px-3 py-2.5 rounded-xl border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 text-xs font-semibold transition-colors disabled:opacity-50"
-                  >
-                    Reset Realtime
-                  </button>
-                  <button
                     onClick={handleCreate24Periods}
                     disabled={isBatchCreatingPeriods}
                     className="px-3 py-2.5 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-foreground text-xs font-semibold transition-colors disabled:opacity-50"
@@ -1563,14 +1505,13 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       const nextNum = periods.length > 0 ? Math.max(...periods.map(p => p.periodNumber || 0)) + 1 : 1;
-                      const now = new Date();
-                      const nextW = new Date();
-                      nextW.setDate(now.getDate() + 7);
+                      const start = getNextPeriodStart();
+                      const end = addDays(start, 6);
                       setActivePeriod({
                         periodNumber: nextNum,
-                        startDateStr: now.toISOString().slice(0, 10),
-                        endDateStr: nextW.toISOString().slice(0, 10),
-                        amount: 3500,
+                        startDateStr: toDateInput(start),
+                        endDateStr: toDateInput(end),
+                        amount: getLatestPeriodAmount(),
                         status: 'active',
                       });
                       setPeriodModalMode('create');
@@ -1634,24 +1575,16 @@ export default function AdminPage() {
                                   setActivePeriod({
                                     id: period.id,
                                     periodNumber: period.periodNumber,
-                                    startDateStr: s.toISOString().slice(0, 10),
-                                    endDateStr: e.toISOString().slice(0, 10),
-                                    amount: period.amount || 3500,
+                                    startDateStr: toDateInput(s),
+                                    endDateStr: toDateInput(e),
+                                    amount: period.amount || 0,
                                     status: period.status,
                                   });
                                   setPeriodModalMode('edit');
                                 }}
-                                className="p-1.5 rounded-lg border border-black/8 bg-white text-foreground/70 hover:text-foreground hover:bg-black/[0.02]"
                                 title="Edit Periode"
                               >
                                 <Edit className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeletePeriod(period)}
-                                className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                                title="Hapus Periode"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -1703,11 +1636,9 @@ export default function AdminPage() {
                 <button
                   onClick={() => {
                     setActivePayment({
-                      houseId: houses[0]?.id || '',
-                      periodId: periods[0]?.id || '',
-                      amount: 3500,
+                      houseId: houses.find(h => h.isActive)?.id || '',
+                      periodId: periods.find(p => p.status === 'active')?.id || '',
                       extraAmount: 0,
-                      paidBy: user?.uid || '',
                     });
                     setPaymentModalMode('create');
                   }}
@@ -1778,23 +1709,6 @@ export default function AdminPage() {
                                     <X className="w-3.5 h-3.5" />
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => {
-                                    setActivePayment(p);
-                                    setPaymentModalMode('edit');
-                                  }}
-                                  className="p-1.5 rounded-lg border border-black/8 bg-white text-foreground/70 hover:text-foreground hover:bg-black/[0.02]"
-                                  title="Edit Pembayaran"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeletePaymentPermanently(p)}
-                                  className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                                  title="Hapus Dokumen"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1898,6 +1812,9 @@ export default function AdminPage() {
 
               {/* Transactions Table */}
               <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
+                <p className="px-4 pt-3 text-[11px] text-foreground/50">
+                  Transaksi historis tidak dapat diedit atau dihapus. Koreksi dilakukan dengan transaksi lawan yang tercatat.
+                </p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -1907,7 +1824,6 @@ export default function AdminPage() {
                         <th className="py-3 px-4">Keterangan</th>
                         <th className="py-3 px-4 text-right">Nominal (Rp)</th>
                         <th className="py-3 px-4">Penerima / Petugas</th>
-                        <th className="py-3 px-4 text-right">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
@@ -1943,32 +1859,11 @@ export default function AdminPage() {
                           <td className="py-3 px-4 text-foreground/60">
                             {tx.takenBy ? `Penerima: ${tx.takenBy}` : userMap.get(tx.createdBy)?.name || tx.createdBy || '-'}
                           </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="inline-flex items-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  setActiveTx(tx);
-                                  setTxModalMode('edit');
-                                }}
-                                className="p-1.5 rounded-lg border border-black/8 bg-white text-foreground/70 hover:text-foreground hover:bg-black/[0.02]"
-                                title="Edit Transaksi"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteTransaction(tx)}
-                                className="p-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                                title="Hapus Transaksi"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
                         </tr>
                       ))}
                       {filteredTransactions.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-10 text-center text-foreground/40">
+                          <td colSpan={5} className="py-10 text-center text-foreground/40">
                             Tidak ada transaksi kas yang sesuai.
                           </td>
                         </tr>
@@ -2052,7 +1947,7 @@ export default function AdminPage() {
                             <select
                               value={u.role || 'petugas'}
                               disabled={u.id === user?.uid}
-                              onChange={e => handleChangeUserRole(u.id, e.target.value)}
+                              onChange={e => handleChangeUserRole(u.id, e.target.value as 'admin' | 'petugas' | 'warga')}
                               className="py-1 px-2.5 rounded-lg border border-black/8 bg-white text-xs font-semibold text-foreground disabled:opacity-60 focus:outline-none"
                             >
                               <option value="admin">Admin</option>
@@ -2316,11 +2211,12 @@ export default function AdminPage() {
                 <label className="block text-xs font-semibold text-foreground/80 mb-1">Nomor Periode</label>
                 <input
                   required
+                  disabled={editingPeriodHasPayments}
                   type="number"
                   min="1"
                   value={activePeriod.periodNumber || ''}
                   onChange={e => setActivePeriod({ ...activePeriod, periodNumber: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-black/[0.02] disabled:text-foreground/50"
                 />
               </div>
 
@@ -2329,20 +2225,29 @@ export default function AdminPage() {
                   <label className="block text-xs font-semibold text-foreground/80 mb-1">Tanggal Mulai</label>
                   <input
                     required
+                    disabled={editingPeriodHasPayments}
                     type="date"
                     value={activePeriod.startDateStr || ''}
-                    onChange={e => setActivePeriod({ ...activePeriod, startDateStr: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    onChange={e => {
+                      const start = parseDateInput(e.target.value);
+                      setActivePeriod({
+                        ...activePeriod,
+                        startDateStr: e.target.value,
+                        endDateStr: start ? toDateInput(addDays(start, 6)) : activePeriod.endDateStr,
+                      });
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-black/[0.02] disabled:text-foreground/50"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-foreground/80 mb-1">Tanggal Selesai</label>
                   <input
                     required
+                    disabled={editingPeriodHasPayments}
                     type="date"
                     value={activePeriod.endDateStr || ''}
                     onChange={e => setActivePeriod({ ...activePeriod, endDateStr: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-black/[0.02] disabled:text-foreground/50"
                   />
                 </div>
               </div>
@@ -2351,12 +2256,13 @@ export default function AdminPage() {
                 <label className="block text-xs font-semibold text-foreground/80 mb-1">Nominal Tarif (Rp)</label>
                 <input
                   required
+                  disabled={editingPeriodHasPayments}
                   type="number"
-                  min="500"
+                  min="1"
                   step="500"
-                  value={activePeriod.amount || 3500}
+                  value={activePeriod.amount || ''}
                   onChange={e => setActivePeriod({ ...activePeriod, amount: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:bg-black/[0.02] disabled:text-foreground/50"
                 />
               </div>
 
@@ -2371,6 +2277,11 @@ export default function AdminPage() {
                   <option value="archived">Arsip</option>
                 </select>
               </div>
+              {editingPeriodHasPayments && (
+                <p className="text-[11px] text-orange-700 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                  Periode ini sudah memiliki pembayaran. Nomor, tanggal, dan nominal dikunci; hanya status arsip yang dapat diubah.
+                </p>
+              )}
 
               <div className="pt-2 flex gap-2">
                 <button
@@ -2400,7 +2311,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md border border-black/10 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm sm:text-base font-bold text-foreground">
-                {paymentModalMode === 'create' ? 'Catat Pembayaran Jimpitan' : 'Edit Status Pembayaran'}
+                Catat Pembayaran Jimpitan
               </h3>
               <button
                 onClick={() => { setPaymentModalMode(null); setActivePayment(null); }}
@@ -2411,79 +2322,61 @@ export default function AdminPage() {
             </div>
 
             <form onSubmit={handleSavePayment} className="space-y-3">
-              {paymentModalMode === 'create' ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-foreground/80 mb-1">Pilih Rumah</label>
-                    <select
-                      required
-                      value={activePayment.houseId || ''}
-                      onChange={e => setActivePayment({ ...activePayment, houseId: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-medium focus:outline-none"
-                    >
-                      <option value="">-- Pilih Rumah --</option>
-                      {houses.map(h => (
-                        <option key={h.id} value={h.id}>
-                          No. {h.houseNumber} - {h.headOfFamily}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground/80 mb-1">Pilih Rumah</label>
+                <select
+                  required
+                  value={activePayment.houseId || ''}
+                  onChange={e => setActivePayment({ ...activePayment, houseId: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-medium focus:outline-none"
+                >
+                  <option value="">-- Pilih Rumah --</option>
+                  {houses.filter(h => h.isActive).map(h => (
+                    <option key={h.id} value={h.id}>
+                      No. {h.houseNumber} - {h.headOfFamily}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-foreground/80 mb-1">Pilih Periode</label>
-                    <select
-                      required
-                      value={activePayment.periodId || ''}
-                      onChange={e => setActivePayment({ ...activePayment, periodId: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-medium focus:outline-none"
-                    >
-                      <option value="">-- Pilih Periode --</option>
-                      {periods.map(pr => (
-                        <option key={pr.id} value={pr.id}>
-                          Periode #{pr.periodNumber} ({formatDateRange(pr.startDate, pr.endDate)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground/80 mb-1">Pilih Periode</label>
+                <select
+                  required
+                  value={activePayment.periodId || ''}
+                  onChange={e => setActivePayment({ ...activePayment, periodId: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-medium focus:outline-none"
+                >
+                  <option value="">-- Pilih Periode --</option>
+                  {periods.filter(pr => pr.status === 'active').map(pr => (
+                    <option key={pr.id} value={pr.id}>
+                      Periode #{pr.periodNumber} ({formatDateRange(pr.startDate, pr.endDate)})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-xs font-semibold text-foreground/80 mb-1">Nominal Pokok (Rp)</label>
-                      <input
-                        required
-                        type="number"
-                        value={activePayment.amount || 3500}
-                        onChange={e => setActivePayment({ ...activePayment, amount: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-foreground/80 mb-1">Donasi/Lebihan (Rp)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={activePayment.extraAmount || 0}
-                        onChange={e => setActivePayment({ ...activePayment, extraAmount: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-foreground/80 mb-1">Status Pembayaran</label>
-                  <select
-                    value={activePayment.status || 'paid'}
-                    onChange={e => setActivePayment({ ...activePayment, status: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-semibold focus:outline-none"
-                  >
-                    <option value="paid">Lunas (Paid)</option>
-                    <option value="cancelled">Dibatalkan (Cancelled)</option>
-                  </select>
+                  <label className="block text-xs font-semibold text-foreground/80 mb-1">Nominal Pokok (Rp)</label>
+                  <div className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-black/[0.02] text-xs font-semibold text-foreground">
+                    {(Number(periodMap.get(activePayment.periodId)?.amount) || 0).toLocaleString('id-ID')}
+                  </div>
                 </div>
-              )}
-
+                <div>
+                  <label className="block text-xs font-semibold text-foreground/80 mb-1">Donasi/Lebihan (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={activePayment.extraAmount || 0}
+                    onChange={e => setActivePayment({ ...activePayment, extraAmount: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-foreground/50">
+                Nominal pokok mengikuti periode yang dipilih. Pembayaran yang sudah tercatat dibatalkan lewat tombol batal, bukan diedit.
+              </p>
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
@@ -2512,7 +2405,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md border border-black/10 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm sm:text-base font-bold text-foreground">
-                {txModalMode === 'create' ? 'Catat Transaksi Kas Baru' : 'Edit Transaksi Keuangan'}
+                Catat Transaksi Kas Baru
               </h3>
               <button
                 onClick={() => { setTxModalMode(null); setActiveTx(null); }}
@@ -2528,7 +2421,11 @@ export default function AdminPage() {
                   <label className="block text-xs font-semibold text-foreground/80 mb-1">Tipe Transaksi</label>
                   <select
                     value={activeTx.type || 'income'}
-                    onChange={e => setActiveTx({ ...activeTx, type: e.target.value })}
+                    onChange={e => setActiveTx({
+                      ...activeTx,
+                      type: e.target.value,
+                      category: e.target.value === 'income' ? 'donation' : 'operational',
+                    })}
                     className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-semibold focus:outline-none"
                   >
                     <option value="income">Pemasukan (+)</option>
@@ -2545,7 +2442,6 @@ export default function AdminPage() {
                   >
                     {activeTx.type === 'income' ? (
                       <>
-                        <option value="payment">Jimpitan Rutin</option>
                         <option value="donation">Donasi / Kelebihan</option>
                         <option value="other">Pemasukan Lainnya</option>
                       </>
@@ -2554,7 +2450,6 @@ export default function AdminPage() {
                         <option value="operational">Operasional</option>
                         <option value="social">Sosial Warga</option>
                         <option value="maintenance">Perawatan Fasilitas</option>
-                        <option value="cancellation">Pembatalan (Reversal)</option>
                         <option value="other">Pengeluaran Lainnya</option>
                       </>
                     )}
@@ -2590,8 +2485,9 @@ export default function AdminPage() {
 
               {activeTx.type === 'expense' && (
                 <div>
-                  <label className="block text-xs font-semibold text-foreground/80 mb-1">Penerima Dana (takenBy)</label>
+                  <label className="block text-xs font-semibold text-foreground/80 mb-1">Penerima Dana (wajib)</label>
                   <input
+                    required
                     type="text"
                     value={activeTx.takenBy || ''}
                     onChange={e => setActiveTx({ ...activeTx, takenBy: e.target.value })}
@@ -2600,6 +2496,9 @@ export default function AdminPage() {
                   />
                 </div>
               )}
+              <p className="text-[11px] text-foreground/50">
+                Transaksi historis tidak dapat diedit atau dihapus. Koreksi dilakukan dengan transaksi lawan yang tercatat.
+              </p>
 
               <div className="pt-2 flex gap-2">
                 <button
@@ -2632,7 +2531,7 @@ export default function AdminPage() {
                 {userModalMode === 'create' ? 'Tambah Pengguna / Petugas Baru' : `Edit Akun ${activeUser.name}`}
               </h3>
               <button
-                onClick={() => { setUserModalMode(null); setActiveUser(null); }}
+                onClick={() => { setUserModalMode(null); setActiveUser(null); setUserPassword(''); }}
                 className="p-1.5 rounded-lg text-foreground/40 hover:text-foreground hover:bg-black/5"
               >
                 <X className="w-4 h-4" />
@@ -2667,44 +2566,69 @@ export default function AdminPage() {
               )}
 
               <div>
+                <label className="block text-xs font-semibold text-foreground/80 mb-1">
+                  {userModalMode === 'create' ? 'Password Akun (Minimal 6 karakter)' : 'Ubah Password (Kosongkan jika tidak diubah)'}
+                </label>
+                <input
+                  required={userModalMode === 'create'}
+                  type="password"
+                  value={userPassword}
+                  onChange={e => setUserPassword(e.target.value)}
+                  placeholder={userModalMode === 'create' ? 'Minimal 6 karakter' : 'Password baru (opsional)'}
+                  minLength={6}
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-foreground/80 mb-1">Role Akun</label>
                 <select
                   value={activeUser.role || 'petugas'}
-                  onChange={e => setActiveUser({ ...activeUser, role: e.target.value as any })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-semibold focus:outline-none"
+                  disabled={activeUser.id === user?.uid}
+                  onChange={e => setActiveUser({ ...activeUser, role: e.target.value as 'admin' | 'petugas' | 'warga' })}
+                  className="w-full px-3 py-2.5 rounded-xl border border-black/8 bg-white text-xs font-semibold focus:outline-none disabled:opacity-60"
                 >
                   <option value="admin">Admin (Akses Developer & Panel)</option>
                   <option value="petugas">Petugas (Penarikan Jimpitan)</option>
                   <option value="warga">Warga</option>
                 </select>
+                {activeUser.id === user?.uid && (
+                  <p className="text-[10px] text-amber-600 mt-1">Anda tidak dapat menurunkan role akun sendiri.</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="userActiveCheck"
+                  disabled={activeUser.id === user?.uid}
                   checked={activeUser.isActive ?? true}
                   onChange={e => setActiveUser({ ...activeUser, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-black/20 text-primary focus:ring-primary/40"
+                  className="w-4 h-4 rounded border-black/20 text-primary focus:ring-primary/40 disabled:opacity-50"
                 />
                 <label htmlFor="userActiveCheck" className="text-xs font-semibold text-foreground/80 cursor-pointer">
                   Status Akun Aktif
                 </label>
               </div>
+              {activeUser.id === user?.uid && (
+                <p className="text-[10px] text-amber-600">Anda tidak dapat menonaktifkan akun sendiri.</p>
+              )}
 
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => { setUserModalMode(null); setActiveUser(null); }}
-                  className="flex-1 py-2.5 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-foreground text-xs font-semibold transition-colors"
+                  disabled={isSubmittingUser}
+                  onClick={() => { setUserModalMode(null); setActiveUser(null); setUserPassword(''); }}
+                  className="flex-1 py-2.5 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-foreground text-xs font-semibold transition-colors disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-[#000000] text-xs font-bold shadow-xs hover:bg-primary/90 active:scale-[0.98] transition-transform"
+                  disabled={isSubmittingUser}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-[#000000] text-xs font-bold shadow-xs hover:bg-primary/90 active:scale-[0.98] transition-transform disabled:opacity-50"
                 >
-                  Simpan Pengguna
+                  {isSubmittingUser ? 'Menyimpan...' : 'Simpan Pengguna'}
                 </button>
               </div>
             </form>
@@ -2780,7 +2704,7 @@ export default function AdminPage() {
                 onClick={deleteDialog.onConfirm}
                 className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs active:scale-[0.98] transition-transform"
               >
-                Ya, Hapus Data
+                {deleteDialog.confirmLabel || 'Ya, Hapus Data'}
               </button>
             </div>
           </div>

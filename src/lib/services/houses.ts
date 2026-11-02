@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -65,8 +64,5 @@ export async function updateHouse(
   });
 }
 
-export async function deleteHouse(id: string): Promise<void> {
-  const docRef = doc(db, "houses", id);
-  await deleteDoc(docRef);
-}
+
 

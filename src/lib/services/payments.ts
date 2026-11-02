@@ -1,14 +1,12 @@
 import {
   collection,
-  deleteDoc,
   doc,
-  getDoc,
   getDocs,
   getFirestore,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
-  updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -63,16 +61,25 @@ export async function getPaymentsByPeriod(
 }
 
 export async function recordPayment(input: PaymentInput): Promise<void> {
-  // Check if payment already exists for this house and period
+  if (!Number.isFinite(input.standardAmount) || input.standardAmount <= 0) {
+    throw new Error("Nominal standar periode tidak valid.");
+  }
+  if (!Number.isFinite(input.amount) || input.amount < input.standardAmount) {
+    throw new Error("Nominal pembayaran tidak boleh kurang dari nominal periode.");
+  }
+
+  // Hanya pembayaran berstatus paid yang dianggap duplikat.
+  // Pembayaran yang sudah dibatalkan boleh dicatat ulang sebagai dokumen baru.
   const existingQuery = query(
     collection(db, "payments"),
     where("houseId", "==", input.houseId),
     where("periodId", "==", input.periodId),
+    where("status", "==", "paid"),
   );
 
   const existingDocs = await getDocs(existingQuery);
   if (!existingDocs.empty) {
-    throw new Error("Payment already recorded for this period.");
+    throw new Error("Pembayaran untuk rumah dan periode ini sudah lunas.");
   }
 
   const batch = writeBatch(db);
@@ -142,6 +149,19 @@ export interface MultiPeriodPaymentInput {
 }
 
 export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): Promise<void> {
+  if (!Number.isFinite(input.standardAmountPerPeriod) || input.standardAmountPerPeriod <= 0) {
+    throw new Error("Nominal standar periode tidak valid.");
+  }
+  if (!Number.isFinite(input.extraAmount ?? 0) || (input.extraAmount ?? 0) < 0) {
+    throw new Error("Nominal donasi tidak valid.");
+  }
+  if (input.periodIds.length === 0) {
+    throw new Error("Pilih minimal satu periode.");
+  }
+  if (new Set(input.periodIds).size !== input.periodIds.length) {
+    throw new Error("Daftar periode mengandung duplikat.");
+  }
+
   const batch = writeBatch(db);
   
   for (const periodId of input.periodIds) {
@@ -153,7 +173,7 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
     );
     const existingDocs = await getDocs(existingQuery);
     if (!existingDocs.empty) {
-      throw new Error(`Payment already recorded for period ${periodId}.`);
+      throw new Error(`Pembayaran untuk periode ${periodId} sudah lunas.`);
     }
 
     const paymentRef = doc(collection(db, "payments"));
@@ -200,17 +220,9 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
 
 export async function cancelPayment(paymentId: string, cancelledBy: string): Promise<void> {
   const paymentRef = doc(db, "payments", paymentId);
-  const paymentSnap = await getDoc(paymentRef);
 
-  if (!paymentSnap.exists()) {
-    throw new Error("Payment not found");
-  }
-
-  const paymentData = paymentSnap.data() as Payment;
-  if (paymentData.status === "cancelled") {
-    throw new Error("Payment already cancelled");
-  }
-  
+  // Nominal reversal diambil dari transaksi income yang benar-benar tercatat.
+  // Jangan memakai nominal hardcoded: data lama bisa memiliki nominal berbeda.
   const txQuery = query(
     collection(db, "financial_transactions"),
     where("paymentId", "==", paymentId),
@@ -219,31 +231,44 @@ export async function cancelPayment(paymentId: string, cancelledBy: string): Pro
   const txSnap = await getDocs(txQuery);
   let totalAmount = 0;
   txSnap.forEach(txDoc => {
-    totalAmount += txDoc.data().amount;
+    totalAmount += Number(txDoc.data().amount) || 0;
   });
 
-  const batch = writeBatch(db);
+  if (totalAmount <= 0) {
+    throw new Error("Tidak ada transaksi pemasukan terkait. Pembatalan dibatalkan agar kas tidak salah.");
+  }
 
-  batch.update(paymentRef, {
-    status: "cancelled",
-    cancelledAt: serverTimestamp(),
-    cancelledBy: cancelledBy,
+  await runTransaction(db, async (transaction) => {
+    const paymentSnap = await transaction.get(paymentRef);
+
+    if (!paymentSnap.exists()) {
+      throw new Error("Pembayaran tidak ditemukan.");
+    }
+
+    const paymentData = paymentSnap.data() as Payment;
+    if (paymentData.status === "cancelled") {
+      throw new Error("Pembayaran sudah dibatalkan.");
+    }
+
+    transaction.update(paymentRef, {
+      status: "cancelled",
+      cancelledAt: serverTimestamp(),
+      cancelledBy: cancelledBy,
+    });
+
+    const cancelTxRef = doc(collection(db, "financial_transactions"));
+    transaction.set(cancelTxRef, {
+      type: "expense",
+      category: "cancellation",
+      amount: totalAmount,
+      description: "Pembatalan pembayaran jimpitan",
+      houseId: paymentData.houseId,
+      paymentId: paymentId,
+      takenBy: null,
+      createdBy: cancelledBy,
+      createdAt: serverTimestamp(),
+    });
   });
-
-  const cancelTxRef = doc(collection(db, "financial_transactions"));
-  batch.set(cancelTxRef, {
-    type: "expense",
-    category: "cancellation",
-    amount: totalAmount,
-    description: "Pembatalan pembayaran jimpitan",
-    houseId: paymentData.houseId,
-    paymentId: paymentId,
-    takenBy: null,
-    createdBy: cancelledBy,
-    createdAt: serverTimestamp(),
-  });
-
-  await batch.commit();
 }
 
 export async function getAllPayments(): Promise<Payment[]> {
@@ -258,16 +283,5 @@ export async function getAllPayments(): Promise<Payment[]> {
   );
 }
 
-export async function updatePayment(
-  id: string,
-  data: Partial<Omit<Payment, "id" | "createdAt">>
-): Promise<void> {
-  const paymentRef = doc(db, "payments", id);
-  await updateDoc(paymentRef, data);
-}
 
-export async function deletePayment(id: string): Promise<void> {
-  const paymentRef = doc(db, "payments", id);
-  await deleteDoc(paymentRef);
-}
 

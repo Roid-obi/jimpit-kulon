@@ -1,16 +1,11 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
-  doc,
   getDocs,
   getFirestore,
   orderBy,
   query,
   serverTimestamp,
-  updateDoc,
-  where,
-  Timestamp,
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import type { FinancialTransaction } from "@/types/jimpitan";
@@ -95,13 +90,6 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
 export async function getRecentTransactions(
   limitCount: number = 5
 ): Promise<FinancialTransaction[]> {
-  const transactionsCol = collection(db, "financial_transactions");
-  const q = query(transactionsCol, orderBy("createdAt", "desc"));
-  
-  // Note: Firestore doesn't have a direct limit on query if we want just the snapshot docs directly with limit()
-  // But we can just use the regular query and slice, or use `limit` from firestore.
-  // We should import limit from firestore. But we can also just fetch and slice for simplicity if we didn't import limit.
-  // Better to use getTransactions and slice.
   const transactions = await getTransactions();
   return transactions.slice(0, limitCount);
 }
@@ -139,16 +127,5 @@ export async function addExpense(input: ExpenseInput): Promise<void> {
   });
 }
 
-export async function updateTransaction(
-  id: string,
-  data: Partial<Omit<FinancialTransaction, "id" | "createdAt">>
-): Promise<void> {
-  const docRef = doc(db, "financial_transactions", id);
-  await updateDoc(docRef, data);
-}
 
-export async function deleteTransaction(id: string): Promise<void> {
-  const docRef = doc(db, "financial_transactions", id);
-  await deleteDoc(docRef);
-}
 
