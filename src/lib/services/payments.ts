@@ -48,6 +48,7 @@ export async function getPaymentsByPeriod(
   const q = query(
     collection(db, "payments"),
     where("periodId", "==", periodId),
+    where("status", "==", "paid"),
   );
 
   const snapshot = await getDocs(q);
@@ -140,46 +141,68 @@ export async function checkPaymentExists(houseId: string, periodId: string): Pro
   return !snapshot.empty;
 }
 
+export interface MultiPeriodPaymentItem {
+  periodId: string;
+  amount: number;
+}
+
 export interface MultiPeriodPaymentInput {
   houseId: string;
-  periodIds: string[];  // bisa 1 atau lebih periode
+  periodIds?: string[];  // backward-compatible
+  items?: MultiPeriodPaymentItem[]; // preferred: dynamic amount per period
   paidBy: string;       // user UID
-  standardAmountPerPeriod: number; // nominal per periode
+  standardAmountPerPeriod?: number; // fallback if items not provided
   extraAmount?: number; // kelebihan bayar (donasi)
 }
 
 export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): Promise<void> {
-  if (!Number.isFinite(input.standardAmountPerPeriod) || input.standardAmountPerPeriod <= 0) {
-    throw new Error("Nominal standar periode tidak valid.");
-  }
-  if (!Number.isFinite(input.extraAmount ?? 0) || (input.extraAmount ?? 0) < 0) {
-    throw new Error("Nominal donasi tidak valid.");
-  }
-  if (input.periodIds.length === 0) {
+  // Resolve items
+  let paymentItems: MultiPeriodPaymentItem[] = [];
+  if (input.items && input.items.length > 0) {
+    paymentItems = input.items;
+  } else if (input.periodIds && input.periodIds.length > 0) {
+    const defaultAmt = input.standardAmountPerPeriod ?? 0;
+    paymentItems = input.periodIds.map(pid => ({ periodId: pid, amount: defaultAmt }));
+  } else {
     throw new Error("Pilih minimal satu periode.");
   }
-  if (new Set(input.periodIds).size !== input.periodIds.length) {
+
+  if (paymentItems.length === 0) {
+    throw new Error("Pilih minimal satu periode.");
+  }
+
+  const periodIdList = paymentItems.map(item => item.periodId);
+  if (new Set(periodIdList).size !== periodIdList.length) {
     throw new Error("Daftar periode mengandung duplikat.");
   }
 
+  for (const item of paymentItems) {
+    if (!Number.isFinite(item.amount) || item.amount <= 0) {
+      throw new Error(`Nominal untuk periode ${item.periodId} tidak valid.`);
+    }
+  }
+
+  if (!Number.isFinite(input.extraAmount ?? 0) || (input.extraAmount ?? 0) < 0) {
+    throw new Error("Nominal donasi tidak valid.");
+  }
   const batch = writeBatch(db);
   
-  for (const periodId of input.periodIds) {
+  for (const item of paymentItems) {
     const existingQuery = query(
       collection(db, "payments"),
       where("houseId", "==", input.houseId),
-      where("periodId", "==", periodId),
+      where("periodId", "==", item.periodId),
       where("status", "==", "paid")
     );
     const existingDocs = await getDocs(existingQuery);
     if (!existingDocs.empty) {
-      throw new Error(`Pembayaran untuk periode ${periodId} sudah lunas.`);
+      throw new Error(`Pembayaran untuk periode ini sudah lunas.`);
     }
 
     const paymentRef = doc(collection(db, "payments"));
     batch.set(paymentRef, {
       houseId: input.houseId,
-      periodId: periodId,
+      periodId: item.periodId,
       paidBy: input.paidBy,
       paidAt: serverTimestamp(),
       status: "paid",
@@ -190,7 +213,7 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
     batch.set(standardTxRef, {
       type: "income",
       category: "payment",
-      amount: input.standardAmountPerPeriod,
+      amount: item.amount,
       description: "Pembayaran jimpitan rutin",
       houseId: input.houseId,
       paymentId: paymentRef.id,

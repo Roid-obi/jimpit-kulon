@@ -7,10 +7,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   collection, doc, getDocs, getDoc, getFirestore,
-  orderBy, query, serverTimestamp, where, writeBatch
+  orderBy, query, where
 } from 'firebase/firestore';
 import { app } from '@/lib/firebase/client';
 import type { House, Period, Payment } from '@/types/jimpitan';
+import { cancelPayment, recordMultiPeriodPayment } from '@/lib/services/payments';
 
 export default function HouseDetailPage() {
   const params = useParams();
@@ -121,9 +122,8 @@ export default function HouseDetailPage() {
     const now = new Date();
     return period.endDate.toDate() < now && !isPaymentDone(period.id);
   };
-
   const arrearPeriods = periods.filter(p => isArrear(p));
-  const totalArrearAmount = arrearPeriods.length * 3500;
+  const totalArrearAmount = arrearPeriods.reduce((acc, p) => acc + (p.amount || 0), 0);
 
   const formatPeriod = (period: Period) => {
     const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
@@ -155,45 +155,22 @@ export default function HouseDetailPage() {
     if (!house || !user || selectedPeriodIds.length === 0) return;
     setIsPaying(true);
     try {
+      const periodMap = new Map(periods.map(p => [p.id, p]));
+      const items = selectedPeriodIds.map(pid => {
+        const p = periodMap.get(pid);
+        return {
+          periodId: pid,
+          amount: p?.amount || 0,
+        };
+      });
+
+      await recordMultiPeriodPayment({
+        houseId: house.id,
+        items,
+        paidBy: user.uid,
+      });
+
       const db = getFirestore(app);
-      const batch = writeBatch(db);
-      const amountPerPeriod = 3500;
-      
-      for (const periodId of selectedPeriodIds) {
-        const existQ = query(
-          collection(db, 'payments'),
-          where('houseId', '==', house.id),
-          where('periodId', '==', periodId)
-        );
-        const existSnap = await getDocs(existQ);
-        if (!existSnap.empty) continue;
-        
-        const paymentRef = doc(collection(db, 'payments'));
-        batch.set(paymentRef, {
-          houseId: house.id,
-          periodId,
-          paidBy: user.uid,
-          paidAt: serverTimestamp(),
-          status: 'paid',
-          createdAt: serverTimestamp(),
-        });
-        
-        const txRef = doc(collection(db, 'financial_transactions'));
-        batch.set(txRef, {
-          type: 'income',
-          category: 'payment',
-          amount: amountPerPeriod,
-          description: 'Pembayaran jimpitan rutin',
-          houseId: house.id,
-          paymentId: paymentRef.id,
-          takenBy: null,
-          createdBy: user.uid,
-          createdAt: serverTimestamp(),
-        });
-      }
-      
-      await batch.commit();
-      
       const updatedQ = query(
         collection(db, 'payments'),
         where('houseId', '==', house.id),
@@ -203,9 +180,10 @@ export default function HouseDetailPage() {
       setPayments(updatedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Payment));
       setSelectedPeriodIds([]);
       setShowPaymentModal(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('Gagal mencatat pembayaran');
+      const msg = err instanceof Error ? err.message : 'Gagal mencatat pembayaran';
+      alert(msg);
     } finally {
       setIsPaying(false);
     }
@@ -215,31 +193,9 @@ export default function HouseDetailPage() {
     if (!showCancelModal.payment || !user) return;
     setIsCancelling(true);
     try {
+      await cancelPayment(showCancelModal.payment.id, user.uid);
+
       const db = getFirestore(app);
-      const batch = writeBatch(db);
-      
-      const paymentRef = doc(db, 'payments', showCancelModal.payment.id);
-      batch.update(paymentRef, {
-        status: 'cancelled',
-        cancelledAt: serverTimestamp(),
-        cancelledBy: user.uid,
-      });
-      
-      const reversalRef = doc(collection(db, 'financial_transactions'));
-      batch.set(reversalRef, {
-        type: 'expense',
-        category: 'cancellation',
-        amount: 3500,
-        description: 'Pembatalan pembayaran jimpitan',
-        houseId: house?.id || null,
-        paymentId: showCancelModal.payment.id,
-        takenBy: null,
-        createdBy: user.uid,
-        createdAt: serverTimestamp(),
-      });
-      
-      await batch.commit();
-      
       const updatedQ = query(
         collection(db, 'payments'),
         where('houseId', '==', house?.id || ''),
@@ -248,9 +204,10 @@ export default function HouseDetailPage() {
       const updatedSnap = await getDocs(updatedQ);
       setPayments(updatedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Payment));
       setShowCancelModal({ show: false, payment: null, period: null });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('Gagal membatalkan pembayaran');
+      const msg = err instanceof Error ? err.message : 'Gagal membatalkan pembayaran';
+      alert(msg);
     } finally {
       setIsCancelling(false);
     }
@@ -273,7 +230,10 @@ export default function HouseDetailPage() {
     );
   }
 
-  const selectedAmount = selectedPeriodIds.length * 3500;
+  const selectedAmount = selectedPeriodIds.reduce((sum, pid) => {
+    const p = periods.find(item => item.id === pid);
+    return sum + (p?.amount || 0);
+  }, 0);
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-32">
@@ -392,7 +352,7 @@ export default function HouseDetailPage() {
                   
                   {/* Nominal & checkbox */}
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-foreground">Rp 3.500</span>
+                    <span className="text-sm font-bold text-foreground">Rp {formatRupiah(period.amount || 0)}</span>
                     {!paid && (
                       <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
                         selected ? 'bg-primary border-primary' : 'border-black/20'
@@ -480,7 +440,7 @@ export default function HouseDetailPage() {
             <h3 className="text-xl font-bold text-foreground text-center mb-2">Batalkan Pembayaran?</h3>
             
             <div className="bg-red-50 text-red-800 border border-red-200 rounded-xl p-3 text-xs font-medium text-center mb-6">
-              Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b> di kas sebesar Rp 3.500.
+              Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b> di kas sebesar Rp {formatRupiah(showCancelModal.period.amount || 0)}.
             </div>
             
             <div className="mb-6 text-center space-y-1">

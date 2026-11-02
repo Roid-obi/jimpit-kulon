@@ -256,8 +256,9 @@ export default function AdminPage() {
   };
 
   const getLatestPeriodAmount = () => {
-    if (periods.length === 0) return 3500;
-    return periods.reduce((prev, curr) => (prev.periodNumber > curr.periodNumber ? prev : curr)).amount || 3500;
+    if (periods.length === 0) return 0;
+    const latest = periods.reduce((prev, curr) => (prev.periodNumber > curr.periodNumber ? prev : curr));
+    return latest.amount ?? 0;
   };
 
   // QR Code PNG Downloader
@@ -1546,7 +1547,7 @@ export default function AdminPage() {
                             {formatDateRange(period.startDate, period.endDate)}
                           </td>
                           <td className="py-3 px-4 font-bold text-foreground">
-                            Rp {(period.amount || 3500).toLocaleString('id-ID')}
+                            Rp {(period.amount ?? 0).toLocaleString('id-ID')}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span
