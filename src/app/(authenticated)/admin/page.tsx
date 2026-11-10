@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  collection, doc, getDocs, getFirestore,
+  collection, doc, getDoc, getDocs, getFirestore,
   orderBy, query, serverTimestamp, Timestamp,
   updateDoc, addDoc, deleteDoc, writeBatch, setDoc
 } from 'firebase/firestore';
@@ -90,6 +90,11 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'admin' | 'petugas' | 'warga'>('all');
 
+  // Registration Settings State
+  const [registrationCodeInput, setRegistrationCodeInput] = useState('');
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  const [isSavingRegistration, setIsSavingRegistration] = useState(false);
+
   // Modals State
   // 1. House Modals
   const [houseModalMode, setHouseModalMode] = useState<'create' | 'edit' | null>(null);
@@ -165,6 +170,17 @@ export default function AdminPage() {
       const userSnap = await getDocs(query(collection(db, 'users'), orderBy('name', 'asc')));
       const userList = userSnap.docs.map(d => ({ id: d.id, ...d.data() })) as AppUser[];
       setUsers(userList);
+
+      // 6. Fetch Registration Settings
+      const regSnap = await getDoc(doc(db, 'settings', 'registration'));
+      if (regSnap.exists()) {
+        const regData = regSnap.data();
+        setRegistrationCodeInput(regData?.registrationCode || 'JIMPIT-KULON');
+        setIsRegistrationOpen(regData?.isOpen !== false);
+      } else {
+        setRegistrationCodeInput('JIMPIT-KULON');
+        setIsRegistrationOpen(true);
+      }
 
       if (isManual) showNotification('Data berhasil diperbarui!', 'success');
     } catch (err: unknown) {
@@ -852,7 +868,31 @@ export default function AdminPage() {
       showNotification(`Gagal export JSON: ${msg}`, 'error');
     }
   };
-  // -------------------------------------------------------------
+
+  const handleSaveRegistrationSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = registrationCodeInput.trim().toUpperCase();
+    if (!code || code.length < 4) {
+      showNotification('Kode registrasi minimal 4 karakter.', 'error');
+      return;
+    }
+
+    setIsSavingRegistration(true);
+    try {
+      await setDoc(doc(db, 'settings', 'registration'), {
+        registrationCode: code,
+        isOpen: isRegistrationOpen,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.uid || null,
+      });
+      showNotification('Pengaturan kode registrasi berhasil disimpan!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan.';
+      showNotification(`Gagal menyimpan pengaturan: ${msg}`, 'error');
+    } finally {
+      setIsSavingRegistration(false);
+    }
+  };
   // FILTERED DATA
   // -------------------------------------------------------------
   const filteredHouses = useMemo(() => {
@@ -2076,6 +2116,82 @@ export default function AdminPage() {
                   <p>• Jangan memakai penamaan &quot;Minggu 1, Minggu 2&quot;, selalu gunakan istilah &quot;Periode Jimpitan&quot;.</p>
                   <p>• Kelebihan uang dari warga wajib dicatat terpisah sebagai kategori donasi/pemasukan lain.</p>
                 </div>
+              </div>
+              {/* Pengaturan Kode Registrasi Petugas */}
+              <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" /> Kode Registrasi Mandiri Petugas
+                    </h3>
+                    <p className="text-xs text-foreground/50 mt-1">
+                      Pemuda/petugas RT dapat mendaftar akun sendiri menggunakan kode ini tanpa Admin harus membuatkan satu per satu.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveRegistrationSettings} className="space-y-4 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="regCodeInput" className="block text-xs font-semibold text-foreground/80 mb-1.5">
+                        Kode Registrasi Aktif
+                      </label>
+                      <input
+                        id="regCodeInput"
+                        type="text"
+                        required
+                        value={registrationCodeInput}
+                        onChange={e => setRegistrationCodeInput(e.target.value.toUpperCase())}
+                        placeholder="Contoh: JIMPIT-KULON-2026"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-black/10 bg-white font-mono font-bold text-sm tracking-wider uppercase focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <p className="text-[11px] text-foreground/40 mt-1">
+                        Bagikan kode ini ke grup WhatsApp petugas. Ubah kode kapan saja untuk menghentikan pendaftaran berulang.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/80 mb-1.5">
+                        Status Pendaftaran Petugas
+                      </label>
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl border border-black/8 bg-black/[0.01]">
+                        <input
+                          id="allowRegToggle"
+                          type="checkbox"
+                          checked={isRegistrationOpen}
+                          onChange={e => setIsRegistrationOpen(e.target.checked)}
+                          className="w-4 h-4 rounded text-primary border-black/20 focus:ring-primary/30"
+                        />
+                        <label htmlFor="allowRegToggle" className="text-xs font-semibold text-foreground cursor-pointer">
+                          {isRegistrationOpen ? 'Buka Pendaftaran (Aktif)' : 'Tutup Sementara Pendaftaran'}
+                        </label>
+                      </div>
+                      <p className="text-[11px] text-foreground/40 mt-1">
+                        Jika ditutup, halaman registrasi tidak menerima pendaftaran baru sekalipun kode benar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-black/5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(registrationCodeInput);
+                        showNotification('Kode registrasi berhasil disalin!');
+                      }}
+                      className="px-4 py-2.5 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-xs font-semibold text-foreground transition-colors"
+                    >
+                      Salin Kode
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingRegistration}
+                      className="px-5 py-2.5 rounded-xl bg-primary text-[#000000] font-bold text-xs shadow-xs hover:bg-primary/90 active:scale-[0.98] transition-transform disabled:opacity-50"
+                    >
+                      {isSavingRegistration ? 'Menyimpan...' : 'Simpan Kode Registrasi'}
+                    </button>
+                  </div>
+                </form>
               </div>
 
               {/* Developer Database Export & Backup */}

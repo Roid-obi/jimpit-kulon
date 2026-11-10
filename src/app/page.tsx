@@ -1,9 +1,26 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -50,12 +67,14 @@ export default function Home() {
         {/* CTA Buttons */}
         <div className="w-full max-w-xs space-y-3">
           <button
+            type="button"
             onClick={() => router.push('/login')}
             className="w-full py-4 bg-primary text-[#000000] rounded-2xl font-bold text-base shadow-sm active:scale-[0.98]"
           >
             Masuk ke Aplikasi
           </button>
           <button
+            type="button"
             onClick={() => router.push('/register')}
             className="w-full py-4 bg-white text-foreground rounded-2xl font-semibold text-base border border-black/10 shadow-sm active:scale-[0.98]"
           >

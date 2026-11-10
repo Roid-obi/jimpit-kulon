@@ -1,11 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  createUserWithEmailAndPassword,
-  getAuth,
-} from "firebase/auth";
-import { doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +8,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { app } from "@/lib/firebase/client";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { Eye, EyeOff, Mail, Lock, User, KeyRound } from "lucide-react";
 
 const registerSchema = z
   .object({
@@ -21,6 +17,7 @@ const registerSchema = z
     email: z.string().email({ message: "Email tidak valid" }),
     password: z.string().min(6, { message: "Password minimal 6 karakter" }),
     confirmPassword: z.string(),
+    registrationCode: z.string().min(1, { message: "Kode registrasi petugas wajib diisi" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Password tidak cocok",
@@ -48,50 +45,33 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password,
-      );
-      const user = userCredential.user;
-
-      // Write to firestore users collection
-      await setDoc(doc(db, "users", user.uid), {
-        name: data.name,
-        email: data.email,
-        role: "petugas",
-        isActive: true, // Auto activate as requested
-        emailVerified: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      // Send custom HTML verification email via backend API
-      const res = await fetch("/api/auth/send-verification", {
+      // Panggil backend API register dengan validasi kode
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email }),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          registrationCode: data.registrationCode,
+        }),
       });
 
+      const result = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        console.error("Gagal mengirim email verifikasi");
+        throw new Error(result.error || "Gagal melakukan pendaftaran akun.");
       }
 
-      router.push("/verify-email");
+      // Auto login setelah berhasil mendaftar
+      const auth = getAuth(app);
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+
+      router.push("/dashboard");
     } catch (err: unknown) {
       console.error(err);
-      if (
-        err instanceof Error &&
-        "code" in err &&
-        err.code === "auth/email-already-in-use"
-      ) {
-        setError("Email sudah digunakan.");
-      } else {
-        setError("Terjadi kesalahan saat pendaftaran.");
-      }
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat pendaftaran.";
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -200,6 +180,27 @@ export default function RegisterPage() {
             {errors.confirmPassword && <p className="text-red-500 text-xs mt-1.5">{errors.confirmPassword.message}</p>}
           </div>
 
+          {/* Registration Code */}
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">Kode Registrasi Petugas</label>
+            <div className="relative">
+              <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
+              <input
+                {...register("registrationCode")}
+                type="text"
+                className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-black/10 bg-background font-mono font-bold tracking-wider uppercase focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                placeholder="Kode dari Admin RT"
+                autoCapitalize="characters"
+              />
+            </div>
+            {errors.registrationCode ? (
+              <p className="text-red-500 text-xs mt-1.5">{errors.registrationCode.message}</p>
+            ) : (
+              <p className="text-foreground/40 text-[11px] mt-1.5 leading-tight">
+                Minta kode registrasi terbaru kepada Admin atau Ketua RT.
+              </p>
+            )}
+          </div>
           {/* Submit */}
           <button
             type="submit"
