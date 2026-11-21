@@ -334,7 +334,7 @@ export default function AdminPage() {
         ctx.textAlign = 'center';
         ctx.fillText(`No. ${selectedHouseForQR.houseNumber} - ${selectedHouseForQR.headOfFamily}`, canvas.width / 2, qrSize + padding + 26);
         ctx.font = '12px sans-serif';
-        ctx.fillStyle = '#854836';
+        ctx.fillStyle = '#6e3321';
         ctx.fillText('Jimpit Kulon Dusun', canvas.width / 2, qrSize + padding + 42);
       }
 
