@@ -11,11 +11,30 @@ export async function POST(req: Request) {
     }
 
     // 1. Generate Email Verification Link via Firebase Admin
+    const rawAppUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+      process.env.VERCEL_URL ||
+      "https://jimpit-kulon.vercel.app";
+
+    let normalizedAppUrl = rawAppUrl.trim();
+    if (
+      !normalizedAppUrl.startsWith("http://") &&
+      !normalizedAppUrl.startsWith("https://")
+    ) {
+      normalizedAppUrl = `https://${normalizedAppUrl}`;
+    }
+
+    let redirectUrl = "https://jimpit-kulon.vercel.app/login";
+    try {
+      redirectUrl = new URL("/login", normalizedAppUrl).toString();
+    } catch {
+      redirectUrl = "https://jimpit-kulon.vercel.app/login";
+    }
+
     const actionCodeSettings = {
       // URL yang akan dibuka setelah verifikasi selesai (Bisa diarahkan ke dashboard/login)
-      url:
-        process.env.NEXT_PUBLIC_APP_URL ||
-        "https://jimpit-kulon.vercel.app/login",
+      url: redirectUrl,
       handleCodeInApp: false, // set true jika butuh handling di aplikasi
     };
 

@@ -9,14 +9,29 @@ const roboto = Roboto({
   weight: ["300", "400", "500", "700", "900"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL
-  ? process.env.NEXT_PUBLIC_APP_URL
-  : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+function getValidSiteUrl(): URL {
+  const rawUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    "http://localhost:3000";
+
+  let normalized = rawUrl.trim();
+  if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+    normalized = `https://${normalized}`;
+  }
+
+  try {
+    return new URL(normalized);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
+const siteUrl = getValidSiteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: siteUrl,
   title: {
     default: "Jimpit Kulon — Jimpitan Warga Dusun Ngowan RT 1 RW 2",
     template: "%s | Jimpit Kulon",
@@ -47,7 +62,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: siteUrl,
+    url: siteUrl.toString(),
     siteName: "Jimpit Kulon",
     title: "Jimpit Kulon — Jimpitan Warga Dusun Ngowan RT 1 RW 2",
     description:
