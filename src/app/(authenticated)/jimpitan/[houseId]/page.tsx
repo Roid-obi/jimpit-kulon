@@ -1,17 +1,36 @@
-'use client';
+"use client";
 
-import { ArrowLeft, CheckCircle2, AlertCircle, Circle, Home, Check, QrCode, Download, X } from 'lucide-react';
-import QRCode from 'react-qr-code';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import {
-  collection, doc, getDocs, getDoc, getFirestore,
-  orderBy, query, where
-} from 'firebase/firestore';
-import { app } from '@/lib/firebase/client';
-import type { House, Period, Payment } from '@/types/jimpitan';
-import { cancelPayment, recordMultiPeriodPayment } from '@/lib/services/payments';
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  Circle,
+  Home,
+  Check,
+  QrCode,
+  Download,
+  X,
+} from "lucide-react";
+import QRCode from "react-qr-code";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  getFirestore,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { app } from "@/lib/firebase/client";
+import type { House, Period, Payment } from "@/types/jimpitan";
+import {
+  cancelPayment,
+  recordMultiPeriodPayment,
+} from "@/lib/services/payments";
 
 export default function HouseDetailPage() {
   const params = useParams();
@@ -26,7 +45,11 @@ export default function HouseDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState<{show: boolean, payment: Payment | null, period: Period | null}>({show: false, payment: null, period: null});
+  const [showCancelModal, setShowCancelModal] = useState<{
+    show: boolean;
+    payment: Payment | null;
+    period: Period | null;
+  }>({ show: false, payment: null, period: null });
   const [isCancelling, setIsCancelling] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
 
@@ -43,15 +66,15 @@ export default function HouseDetailPage() {
       const padding = 24; // Quiet zone
       canvas.width = qrSize + padding * 2;
       canvas.height = qrSize + padding * 2;
-      
-      if(ctx) {
-          // Fill background putih
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          // Gambar QR dengan margin
-          ctx.drawImage(img, padding, padding, qrSize, qrSize);
+
+      if (ctx) {
+        // Fill background putih
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Gambar QR dengan margin
+        ctx.drawImage(img, padding, padding, qrSize, qrSize);
       }
-      
+
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.download = `QR_Rumah_${house.houseNumber}.png`;
@@ -64,9 +87,9 @@ export default function HouseDetailPage() {
   useEffect(() => {
     if (!isLoading && periods.length > 0) {
       setTimeout(() => {
-        const activeEl = document.getElementById('active-period');
+        const activeEl = document.getElementById("active-period");
         if (activeEl) {
-          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, 300);
     }
@@ -78,25 +101,35 @@ export default function HouseDetailPage() {
       setIsLoading(true);
       try {
         const db = getFirestore(app);
-        
+
         // 1. Ambil data rumah
-        const houseDoc = await getDoc(doc(db, 'houses', houseId));
+        const houseDoc = await getDoc(doc(db, "houses", houseId));
         if (houseDoc.exists()) {
           setHouse({ id: houseDoc.id, ...houseDoc.data() } as House);
         }
 
         // 2. Ambil semua periods, diurutkan dari terlama ke terbaru
-        const periodsQ = query(collection(db, 'periods'), orderBy('startDate', 'asc'));
+        const periodsQ = query(
+          collection(db, "periods"),
+          orderBy("startDate", "asc"),
+        );
         const periodsSnap = await getDocs(periodsQ);
-        setPeriods(periodsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Period)));
+        setPeriods(
+          periodsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Period),
+        );
 
         // 3. Ambil semua payments untuk rumah ini yang berstatus paid
-        const paymentsQ = query(collection(db, 'payments'), where('houseId', '==', houseId), where('status', '==', 'paid'));
+        const paymentsQ = query(
+          collection(db, "payments"),
+          where("houseId", "==", houseId),
+          where("status", "==", "paid"),
+        );
         const paymentsSnap = await getDocs(paymentsQ);
-        setPayments(paymentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
-        
+        setPayments(
+          paymentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Payment),
+        );
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -106,7 +139,7 @@ export default function HouseDetailPage() {
   }, [houseId]);
 
   const isPaymentDone = (periodId: string) =>
-    payments.some(p => p.periodId === periodId && p.status === 'paid');
+    payments.some((p) => p.periodId === periodId && p.status === "paid");
 
   const isActivePeriod = (period: Period) => {
     const now = new Date();
@@ -122,32 +155,41 @@ export default function HouseDetailPage() {
     const now = new Date();
     return period.endDate.toDate() < now && !isPaymentDone(period.id);
   };
-  const arrearPeriods = periods.filter(p => isArrear(p));
-  const totalArrearAmount = arrearPeriods.reduce((acc, p) => acc + (p.amount || 0), 0);
+  const arrearPeriods = periods.filter((p) => isArrear(p));
+  const totalArrearAmount = arrearPeriods.reduce(
+    (acc, p) => acc + (p.amount || 0),
+    0,
+  );
 
   const formatPeriod = (period: Period) => {
-    const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-    const start = period.startDate.toDate().toLocaleDateString('id-ID', opts);
-    const end = period.endDate.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+    const start = period.startDate.toDate().toLocaleDateString("id-ID", opts);
+    const end = period.endDate
+      .toDate()
+      .toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
     return `${start} \u2013 ${end}`;
   };
 
   const formatRupiah = (amount: number) => {
-    return new Intl.NumberFormat('id-ID').format(amount);
+    return new Intl.NumberFormat("id-ID").format(amount);
   };
 
   const togglePeriod = (period: Period) => {
     if (isPaymentDone(period.id)) {
-      const payment = payments.find(p => p.periodId === period.id);
+      const payment = payments.find((p) => p.periodId === period.id);
       if (payment) {
         setShowCancelModal({ show: true, payment, period });
       }
       return;
     }
-    setSelectedPeriodIds(prev =>
+    setSelectedPeriodIds((prev) =>
       prev.includes(period.id)
-        ? prev.filter(id => id !== period.id)
-        : [...prev, period.id]
+        ? prev.filter((id) => id !== period.id)
+        : [...prev, period.id],
     );
   };
 
@@ -155,8 +197,8 @@ export default function HouseDetailPage() {
     if (!house || !user || selectedPeriodIds.length === 0) return;
     setIsPaying(true);
     try {
-      const periodMap = new Map(periods.map(p => [p.id, p]));
-      const items = selectedPeriodIds.map(pid => {
+      const periodMap = new Map(periods.map((p) => [p.id, p]));
+      const items = selectedPeriodIds.map((pid) => {
         const p = periodMap.get(pid);
         return {
           periodId: pid,
@@ -172,17 +214,20 @@ export default function HouseDetailPage() {
 
       const db = getFirestore(app);
       const updatedQ = query(
-        collection(db, 'payments'),
-        where('houseId', '==', house.id),
-        where('status', '==', 'paid')
+        collection(db, "payments"),
+        where("houseId", "==", house.id),
+        where("status", "==", "paid"),
       );
       const updatedSnap = await getDocs(updatedQ);
-      setPayments(updatedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Payment));
+      setPayments(
+        updatedSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Payment),
+      );
       setSelectedPeriodIds([]);
       setShowPaymentModal(false);
     } catch (err: unknown) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : 'Gagal mencatat pembayaran';
+      const msg =
+        err instanceof Error ? err.message : "Gagal mencatat pembayaran";
       alert(msg);
     } finally {
       setIsPaying(false);
@@ -197,16 +242,19 @@ export default function HouseDetailPage() {
 
       const db = getFirestore(app);
       const updatedQ = query(
-        collection(db, 'payments'),
-        where('houseId', '==', house?.id || ''),
-        where('status', '==', 'paid')
+        collection(db, "payments"),
+        where("houseId", "==", house?.id || ""),
+        where("status", "==", "paid"),
       );
       const updatedSnap = await getDocs(updatedQ);
-      setPayments(updatedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Payment));
+      setPayments(
+        updatedSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Payment),
+      );
       setShowCancelModal({ show: false, payment: null, period: null });
     } catch (err: unknown) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : 'Gagal membatalkan pembayaran';
+      const msg =
+        err instanceof Error ? err.message : "Gagal membatalkan pembayaran";
       alert(msg);
     } finally {
       setIsCancelling(false);
@@ -224,25 +272,33 @@ export default function HouseDetailPage() {
   if (!house) {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-background p-4 text-center">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Data Rumah Tidak Ditemukan</h2>
-        <button type="button" onClick={() => router.back()} className="text-secondary font-medium">Kembali</button>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">
+          Data Rumah Tidak Ditemukan
+        </h2>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-secondary font-medium"
+        >
+          Kembali
+        </button>
       </div>
     );
   }
 
   const selectedAmount = selectedPeriodIds.reduce((sum, pid) => {
-    const p = periods.find(item => item.id === pid);
+    const p = periods.find((item) => item.id === pid);
     return sum + (p?.amount || 0);
   }, 0);
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-32">
       {/* Sticky Top Section */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 border-b border-black/5 shadow-sm">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-4 border-b border-black/8 shadow-sm">
         {/* Header dengan safe area */}
         <div
           className="flex items-center gap-3 px-4 pb-4"
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+          style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
         >
           <button
             type="button"
@@ -253,25 +309,33 @@ export default function HouseDetailPage() {
           </button>
           <div>
             <h1 className="text-lg font-bold text-foreground leading-tight">
-              {house ? house.headOfFamily : 'Detail Rumah'}
+              {house ? house.headOfFamily : "Detail Rumah"}
             </h1>
             <p className="text-xs text-foreground/50">
-              {house ? `Rumah ${house.houseNumber}` : 'Memuat...'}
+              {house ? `Rumah ${house.houseNumber}` : "Memuat..."}
             </p>
           </div>
         </div>
 
         <div className="px-4">
           {/* Card Info Rumah */}
-          <div className="bg-white rounded-2xl border border-black/5 p-5 shadow-sm">
+          <div className="bg-white rounded-2xl border border-black/8 p-5 shadow-sm">
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
                 <Home className="w-7 h-7 text-secondary" />
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-bold text-foreground">{house.headOfFamily}</h2>
-                <p className="text-sm font-semibold text-foreground/50">Rumah {house.houseNumber}</p>
-                {house.address && <p className="text-xs font-medium text-foreground/40 mt-0.5">{house.address}</p>}
+                <h2 className="text-lg font-bold text-foreground">
+                  {house.headOfFamily}
+                </h2>
+                <p className="text-sm font-semibold text-foreground/50">
+                  Rumah {house.houseNumber}
+                </p>
+                {house.address && (
+                  <p className="text-xs font-medium text-foreground/40 mt-0.5">
+                    {house.address}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -282,12 +346,13 @@ export default function HouseDetailPage() {
                 <QrCode className="w-6 h-6" />
               </button>
             </div>
-            
+
             {arrearPeriods.length > 0 && (
               <div className="mt-4 flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3.5 py-2.5">
                 <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
                 <p className="text-xs font-bold text-orange-700">
-                  {arrearPeriods.length} Periode Tunggakan &bull; Rp {formatRupiah(totalArrearAmount)}
+                  {arrearPeriods.length} Periode Tunggakan &bull; Rp{" "}
+                  {formatRupiah(totalArrearAmount)}
                 </p>
               </div>
             )}
@@ -296,14 +361,15 @@ export default function HouseDetailPage() {
       </div>
 
       <div className="px-4 mt-4">
-
         {/* Daftar Periode Jimpitan */}
-        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
-          <div className="px-4 py-3.5 border-b border-black/5 bg-black/[0.02]">
-            <h3 className="font-semibold text-sm text-foreground">Riwayat Periode</h3>
+        <div className="bg-white rounded-2xl border border-black/8 shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-black/8 bg-black/[0.015]">
+            <h3 className="font-semibold text-sm text-foreground">
+              Riwayat Periode
+            </h3>
           </div>
-          <div className="divide-y divide-black/[0.04]">
-            {periods.map(period => {
+          <div className="divide-y divide-black/5">
+            {periods.map((period) => {
               const paid = isPaymentDone(period.id);
               const arrear = isArrear(period);
               const active = isActivePeriod(period);
@@ -311,56 +377,91 @@ export default function HouseDetailPage() {
               const selected = selectedPeriodIds.includes(period.id);
 
               return (
-                <button 
+                <button
                   type="button"
-                  key={period.id} 
-                  id={active ? 'active-period' : undefined}
-                  onClick={() => togglePeriod(period)} 
+                  key={period.id}
+                  id={active ? "active-period" : undefined}
+                  onClick={() => togglePeriod(period)}
                   className={`w-full px-4 py-3.5 flex items-center gap-3 text-left active:bg-black/5 transition-colors ${
-                    active ? 'bg-primary/5' : ''
+                    active ? "bg-primary/5" : ""
                   }`}
                 >
                   {/* Status indicator */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative ${
-                    paid ? 'bg-green-100' :
-                    arrear ? 'bg-orange-100' :
-                    active ? 'bg-primary/20' :
-                    'bg-black/5'
-                  }`}>
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative ${
+                      paid
+                        ? "bg-green-100"
+                        : arrear
+                          ? "bg-orange-100"
+                          : active
+                            ? "bg-primary/20"
+                            : "bg-black/5"
+                    }`}
+                  >
                     {active && (
                       <div className="absolute inset-0 rounded-xl border-2 border-primary animate-ping opacity-75"></div>
                     )}
-                    {paid
-                      ? <CheckCircle2 className="w-5 h-5 text-green-600 relative z-10" />
-                      : arrear
-                      ? <AlertCircle className="w-5 h-5 text-orange-500 relative z-10" />
-                      : active
-                      ? <Circle className="w-5 h-5 text-primary relative z-10" fill="currentColor" />
-                      : <Circle className="w-5 h-5 text-foreground/20 relative z-10" />
-                    }
+                    {paid ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-600 relative z-10" />
+                    ) : arrear ? (
+                      <AlertCircle className="w-5 h-5 text-orange-500 relative z-10" />
+                    ) : active ? (
+                      <Circle
+                        className="w-5 h-5 text-primary relative z-10"
+                        fill="currentColor"
+                      />
+                    ) : (
+                      <Circle className="w-5 h-5 text-foreground/20 relative z-10" />
+                    )}
                   </div>
-                  
+
                   {/* Info periode */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{formatPeriod(period)}</p>
-                    <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-wide ${
-                      paid ? 'text-green-600' :
-                      arrear ? 'text-orange-500' :
-                      active ? 'text-primary' :
-                      'text-foreground/30'
-                    }`}>
-                      {paid ? 'Lunas' : arrear ? 'Tunggakan' : active ? 'Periode Berjalan' : upcoming ? 'Mendatang' : 'Selesai'}
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {formatPeriod(period)}
+                    </p>
+                    <p
+                      className={`text-[10px] font-bold mt-0.5 uppercase tracking-wide ${
+                        paid
+                          ? "text-green-600"
+                          : arrear
+                            ? "text-orange-500"
+                            : active
+                              ? "text-primary"
+                              : "text-foreground/30"
+                      }`}
+                    >
+                      {paid
+                        ? "Lunas"
+                        : arrear
+                          ? "Tunggakan"
+                          : active
+                            ? "Periode Berjalan"
+                            : upcoming
+                              ? "Mendatang"
+                              : "Selesai"}
                     </p>
                   </div>
-                  
+
                   {/* Nominal & checkbox */}
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-foreground">Rp {formatRupiah(period.amount || 0)}</span>
+                    <span className="text-sm font-bold text-foreground">
+                      Rp {formatRupiah(period.amount || 0)}
+                    </span>
                     {!paid && (
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
-                        selected ? 'bg-primary border-primary' : 'border-black/20'
-                      }`}>
-                        {selected && <Check className="w-3.5 h-3.5 text-[#000000]" strokeWidth={3} />}
+                      <div
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                          selected
+                            ? "bg-primary border-primary"
+                            : "border-black/20"
+                        }`}
+                      >
+                        {selected && (
+                          <Check
+                            className="w-3.5 h-3.5 text-[#000000]"
+                            strokeWidth={3}
+                          />
+                        )}
                       </div>
                     )}
                   </div>
@@ -376,10 +477,14 @@ export default function HouseDetailPage() {
         <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 py-3 bg-white border-t border-black/8 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-foreground/50">{selectedPeriodIds.length} periode dipilih</p>
-              <p className="text-base font-bold text-foreground">Rp {formatRupiah(selectedAmount)}</p>
+              <p className="text-xs font-semibold text-foreground/50">
+                {selectedPeriodIds.length} periode dipilih
+              </p>
+              <p className="text-base font-bold text-foreground">
+                Rp {formatRupiah(selectedAmount)}
+              </p>
             </div>
-            <button 
+            <button
               type="button"
               onClick={() => setShowPaymentModal(true)}
               className="bg-primary text-[#000000] px-6 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
@@ -394,24 +499,34 @@ export default function HouseDetailPage() {
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center backdrop-blur-sm">
           <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
-            <h3 className="text-xl font-bold text-foreground text-center mb-1">Konfirmasi Pembayaran</h3>
+            <h3 className="text-xl font-bold text-foreground text-center mb-1">
+              Konfirmasi Pembayaran
+            </h3>
             <p className="text-foreground/50 font-medium text-center text-sm mb-6">
               Pastikan Anda telah menerima uang tunai dari warga.
             </p>
-            
-            <div className="bg-black/5 rounded-2xl p-5 mb-6 border border-black/5">
+
+            <div className="bg-black/[0.03] rounded-2xl p-5 mb-6 border border-black/8">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-semibold text-foreground/70">Jumlah Periode</span>
-                <span className="font-bold text-foreground text-base">{selectedPeriodIds.length}x</span>
+                <span className="text-sm font-semibold text-foreground/70">
+                  Jumlah Periode
+                </span>
+                <span className="font-bold text-foreground text-base">
+                  {selectedPeriodIds.length}x
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-foreground/70">Total Bayar</span>
-                <span className="font-bold text-2xl text-primary drop-shadow-sm">Rp {formatRupiah(selectedAmount)}</span>
+                <span className="text-sm font-semibold text-foreground/70">
+                  Total Bayar
+                </span>
+                <span className="font-bold text-2xl text-primary drop-shadow-sm">
+                  Rp {formatRupiah(selectedAmount)}
+                </span>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowPaymentModal(false)}
                 disabled={isPaying}
@@ -419,7 +534,7 @@ export default function HouseDetailPage() {
               >
                 Batal
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handlePayment}
                 disabled={isPaying}
@@ -428,7 +543,7 @@ export default function HouseDetailPage() {
                 {isPaying ? (
                   <div className="w-5 h-5 border-2 border-[#000000] border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  'Konfirmasi'
+                  "Konfirmasi"
                 )}
               </button>
             </div>
@@ -443,27 +558,41 @@ export default function HouseDetailPage() {
             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-bold text-foreground text-center mb-2">Batalkan Pembayaran?</h3>
-            
+            <h3 className="text-xl font-bold text-foreground text-center mb-2">
+              Batalkan Pembayaran?
+            </h3>
+
             <div className="bg-red-50 text-red-800 border border-red-200 rounded-xl p-3 text-xs font-medium text-center mb-6">
-              Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b> di kas sebesar Rp {formatRupiah(showCancelModal.period.amount || 0)}.
+              Tindakan ini akan membuat transaksi <b>pengeluaran (reversal)</b>{" "}
+              di kas sebesar Rp{" "}
+              {formatRupiah(showCancelModal.period.amount || 0)}.
             </div>
-            
+
             <div className="mb-6 text-center space-y-1">
-              <p className="text-foreground/60 text-sm font-semibold">Periode</p>
-              <p className="font-bold text-foreground text-base">{formatPeriod(showCancelModal.period)}</p>
+              <p className="text-foreground/60 text-sm font-semibold">
+                Periode
+              </p>
+              <p className="font-bold text-foreground text-base">
+                {formatPeriod(showCancelModal.period)}
+              </p>
             </div>
-            
+
             <div className="flex gap-3">
-              <button 
+              <button
                 type="button"
-                onClick={() => setShowCancelModal({show: false, payment: null, period: null})}
+                onClick={() =>
+                  setShowCancelModal({
+                    show: false,
+                    payment: null,
+                    period: null,
+                  })
+                }
                 disabled={isCancelling}
                 className="flex-1 py-3.5 px-4 bg-black/5 text-foreground font-bold rounded-xl text-sm"
               >
                 Kembali
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handleCancel}
                 disabled={isCancelling}
@@ -472,7 +601,7 @@ export default function HouseDetailPage() {
                 {isCancelling ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  'Ya, Batalkan'
+                  "Ya, Batalkan"
                 )}
               </button>
             </div>
@@ -485,8 +614,10 @@ export default function HouseDetailPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm px-4">
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-foreground">QR Code Rumah</h3>
-              <button 
+              <h3 className="text-lg font-bold text-foreground">
+                QR Code Rumah
+              </h3>
+              <button
                 type="button"
                 onClick={() => setShowQRModal(false)}
                 className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-foreground/50 active:scale-95"
@@ -494,22 +625,26 @@ export default function HouseDetailPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
-            <div className="flex justify-center mb-6 p-4 bg-white rounded-2xl border-2 border-black/5 shadow-sm">
-              <QRCode 
+
+            <div className="flex justify-center mb-6 p-4 bg-white rounded-2xl border border-black/8 shadow-sm">
+              <QRCode
                 id="QRCodeImage"
-                value={house.qrCode || house.id} 
+                value={house.qrCode || house.id}
                 size={200}
                 level="H"
               />
             </div>
-            
+
             <div className="text-center mb-6">
-              <p className="font-bold text-xl text-foreground mb-1">{house.headOfFamily}</p>
-              <p className="text-foreground/60 text-sm">Rumah: {house.houseNumber}</p>
+              <p className="font-bold text-xl text-foreground mb-1">
+                {house.headOfFamily}
+              </p>
+              <p className="text-foreground/60 text-sm">
+                Rumah: {house.houseNumber}
+              </p>
             </div>
-            
-            <button 
+
+            <button
               type="button"
               onClick={downloadQRCode}
               className="w-full flex items-center justify-center gap-2 bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base shadow-[0_4px_14px_rgba(245,181,83,0.4)] active:scale-[0.98] transition-transform"

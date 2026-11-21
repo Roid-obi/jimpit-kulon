@@ -1,11 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, getFirestore } from 'firebase/firestore';
-import { app } from '@/lib/firebase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  getFirestore,
+} from "firebase/firestore";
+import { app } from "@/lib/firebase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, TrendingUp } from "lucide-react";
 
 const db = getFirestore(app);
 
@@ -20,30 +29,32 @@ type Income = {
 export default function PemasukanPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
-  
+
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
-  const [category, setCategory] = useState('donation');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+
+  const [category, setCategory] = useState("donation");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
   const [time, setTime] = useState(() => {
     const now = new Date();
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
   });
 
   const fetchIncomes = async () => {
     try {
       setLoading(true);
       const q = query(
-        collection(db, 'financial_transactions'),
-        orderBy('createdAt', 'desc')
+        collection(db, "financial_transactions"),
+        orderBy("createdAt", "desc"),
       );
       const snapshot = await getDocs(q);
       const data = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter((tx: any) => tx.type === 'income') as Income[];
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((tx: any) => tx.type === "income") as Income[];
       setIncomes(data);
     } catch (err) {
       console.error(err);
@@ -63,45 +74,45 @@ export default function PemasukanPage() {
     try {
       setSubmitting(true);
       const createdAt = new Date(time);
-      
-      await addDoc(collection(db, 'financial_transactions'), {
-        type: 'income',
+
+      await addDoc(collection(db, "financial_transactions"), {
+        type: "income",
         category,
         amount: Number(amount),
         description,
         houseId: null,
         paymentId: null,
         takenBy: null,
-        createdBy: user?.uid ?? 'unknown',
-        createdAt: createdAt
+        createdBy: user?.uid ?? "unknown",
+        createdAt: createdAt,
       });
-      
-      setAmount('');
-      setDescription('');
-      setCategory('donation');
-      alert('Pemasukan berhasil disimpan!');
+
+      setAmount("");
+      setDescription("");
+      setCategory("donation");
+      alert("Pemasukan berhasil disimpan!");
       fetchIncomes();
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan pemasukan');
+      alert("Gagal menyimpan pemasukan");
     } finally {
       setSubmitting(false);
     }
   };
 
   const getCategoryLabel = (cat: string) => {
-    if (cat === 'donation') return 'Donasi';
-    if (cat === 'payment') return 'Pembayaran Lain';
-    return 'Lainnya';
+    if (cat === "donation") return "Donasi";
+    if (cat === "payment") return "Pembayaran Lain";
+    return "Lainnya";
   };
 
-  const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
+  const formatRupiah = (val: number) => `Rp ${val.toLocaleString("id-ID")}`;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <div
         className="flex items-center gap-3 px-4 pb-4"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
       >
         <button
           onClick={() => router.back()}
@@ -110,99 +121,137 @@ export default function PemasukanPage() {
           <ArrowLeft className="w-4 h-4 text-foreground" />
         </button>
         <div>
-          <h1 className="text-lg font-bold text-foreground leading-tight">Tambah Pemasukan</h1>
-          <p className="text-xs text-foreground/50">Catat pemasukan dana jimpitan</p>
+          <h1 className="text-lg font-bold text-foreground leading-tight">
+            Tambah Pemasukan
+          </h1>
+          <p className="text-xs text-foreground/50">
+            Catat pemasukan dana jimpitan
+          </p>
         </div>
       </div>
       <div className="px-4 pb-24">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-2xl border border-black/8 shadow-sm p-5 mb-6 flex flex-col gap-4"
+        >
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Kategori
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="donation">Donasi</option>
+              <option value="payment">Pembayaran Lain</option>
+              <option value="other">Lainnya</option>
+            </select>
+          </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-black/5 p-5 mb-6 flex flex-col gap-4">
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">Kategori</label>
-          <select 
-            value={category} 
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-          >
-            <option value="donation">Donasi</option>
-            <option value="payment">Pembayaran Lain</option>
-            <option value="other">Lainnya</option>
-          </select>
-        </div>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Nominal
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-foreground/50 text-sm font-medium">
+                Rp
+              </span>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full px-4 py-3 pl-11 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="0"
+                required
+              />
+            </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">Nominal</label>
-          <div className="relative">
-            <span className="absolute left-4 top-3.5 text-foreground/50 text-sm font-medium">Rp</span>
-            <input 
-              type="number" 
-              value={amount} 
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 pl-11 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              placeholder="0"
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Keterangan
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              rows={3}
+              placeholder="Keterangan pemasukan..."
+              required
+            ></textarea>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Waktu
+            </label>
+            <input
+              type="datetime-local"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               required
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">Keterangan</label>
-          <textarea 
-            value={description} 
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            rows={3}
-            placeholder="Keterangan pemasukan..."
-            required
-          ></textarea>
-        </div>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-primary text-[#000000] py-4 rounded-xl font-bold text-base w-full mt-2 disabled:opacity-50"
+          >
+            {submitting ? "Menyimpan..." : "Simpan Pemasukan"}
+          </button>
+        </form>
 
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">Waktu</label>
-          <input 
-            type="datetime-local" 
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-black/8 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            required
-          />
-        </div>
+        <h2 className="text-lg font-bold text-foreground mb-4">
+          Daftar Pemasukan
+        </h2>
 
-        <button 
-          type="submit" 
-          disabled={submitting}
-          className="bg-primary text-[#000000] py-4 rounded-xl font-bold text-base w-full mt-2 disabled:opacity-50"
-        >
-          {submitting ? 'Menyimpan...' : 'Simpan Pemasukan'}
-        </button>
-      </form>
-
-      <h2 className="text-lg font-bold text-foreground mb-4">Daftar Pemasukan</h2>
-      
-      {loading ? (
-        <p className="text-center text-sm text-foreground/50 py-4">Memuat data...</p>
-      ) : incomes.length === 0 ? (
-        <p className="text-center text-sm text-foreground/50 py-4">Belum ada pemasukan</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {incomes.map(inc => (
-            <div key={inc.id} className="bg-white px-4 py-3.5 rounded-2xl border border-black/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-100">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
+        {loading ? (
+          <p className="text-center text-sm text-foreground/50 py-4">
+            Memuat data...
+          </p>
+        ) : incomes.length === 0 ? (
+          <p className="text-center text-sm text-foreground/50 py-4">
+            Belum ada pemasukan
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {incomes.map((inc) => (
+              <div
+                key={inc.id}
+                className="bg-white px-4 py-3.5 rounded-2xl border border-black/8 shadow-sm flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-100">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">
+                      {inc.description}
+                    </p>
+                    <p className="text-xs text-foreground/50 mt-0.5">
+                      {getCategoryLabel(inc.category)} &bull;{" "}
+                      {inc.createdAt?.toDate
+                        ? inc.createdAt
+                            .toDate()
+                            .toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                        : "Tanggal tidak tersedia"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-foreground text-sm">{inc.description}</p>
-                  <p className="text-xs text-foreground/50 mt-0.5">
-                    {getCategoryLabel(inc.category)} &bull; {inc.createdAt?.toDate ? inc.createdAt.toDate().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : 'Tanggal tidak tersedia'}
-                  </p>
-                </div>
+                <p className="font-bold text-sm text-green-600">
+                  +{formatRupiah(inc.amount)}
+                </p>
               </div>
-              <p className="font-bold text-sm text-green-600">+{formatRupiah(inc.amount)}</p>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

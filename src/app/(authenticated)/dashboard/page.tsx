@@ -339,7 +339,7 @@ export default function DashboardPage() {
       {/* === CONTENT === */}
       <div className="px-4 pt-4 pb-8 space-y-4">
         {/* Periode Berjalan */}
-        <div className="bg-white rounded-2xl p-5 border border-black/5">
+        <div className="bg-white rounded-2xl p-5 border border-black/8 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-foreground text-sm">
               Periode Berjalan
@@ -397,8 +397,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Transaksi Terbaru */}
-        <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
-          <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/5">
+        <div className="bg-white rounded-2xl border border-black/8 shadow-sm overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/8 bg-black/[0.015]">
             <h3 className="font-semibold text-foreground text-sm">
               Transaksi Terbaru
             </h3>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
                     className={`px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 active:bg-slate-100 transition-colors ${
                       i < recentTransactions.length - 1 &&
                       (!tx.isGrouped || !expandedGroups[tx.id])
-                        ? "border-b border-black/[0.04]"
+                        ? "border-b border-black/5"
                         : ""
                     }`}
                   >
@@ -492,14 +492,14 @@ export default function DashboardPage() {
 
                   {/* Sub transactions dropdown for grouped Jimpitan */}
                   {tx.isGrouped && expandedGroups[tx.id] && (
-                    <ul className="bg-slate-50/50 border-y border-black/[0.04] shadow-inner mb-2">
+                    <ul className="bg-slate-50/50 border-y border-black/5 shadow-inner mb-2">
                       {tx.subTransactions?.map((subT: any, subIdx: number) => (
                         <li
                           key={subT.id}
                           onClick={() => setSelectedTransaction(subT)}
                           className={`px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-100 active:bg-slate-200 transition-colors pl-16 ${
                             subIdx < tx.subTransactions.length - 1
-                              ? "border-b border-black/[0.04]"
+                              ? "border-b border-black/5"
                               : ""
                           }`}
                         >

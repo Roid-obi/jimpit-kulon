@@ -437,7 +437,7 @@ export default function KeuanganPage() {
         ) : error ? (
           <p className="text-center py-8 text-sm text-red-500">{error}</p>
         ) : (
-          <div className="bg-white rounded-2xl border border-black/5 overflow-hidden pb-4 mb-8">
+          <div className="bg-white rounded-2xl border border-black/8 shadow-sm overflow-hidden pb-4 mb-8">
             {filteredTransactions.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-sm text-foreground/40">
@@ -521,7 +521,7 @@ export default function KeuanganPage() {
                                 className={`px-4 py-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 active:bg-slate-100 transition-colors ${
                                   i < group.items.length - 1 &&
                                   (!t.isGrouped || !expandedGroups[t.id])
-                                    ? "border-b border-black/[0.04]"
+                                    ? "border-b border-black/5"
                                     : ""
                                 }`}
                               >
@@ -581,7 +581,7 @@ export default function KeuanganPage() {
 
                               {/* Sub transactions dropdown for grouped Jimpitan */}
                               {t.isGrouped && expandedGroups[t.id] && (
-                                <ul className="bg-slate-50/50 border-y border-black/[0.04] shadow-inner mb-2">
+                                <ul className="bg-slate-50/50 border-y border-black/5 shadow-inner mb-2">
                                   {t.subTransactions?.map((subT, subIdx) => (
                                     <li
                                       key={subT.id}
@@ -590,7 +590,7 @@ export default function KeuanganPage() {
                                       }
                                       className={`px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-slate-100 active:bg-slate-200 transition-colors pl-16 ${
                                         subIdx < t.subTransactions!.length - 1
-                                          ? "border-b border-black/[0.04]"
+                                          ? "border-b border-black/5"
                                           : ""
                                       }`}
                                     >
@@ -964,8 +964,8 @@ export default function KeuanganPage() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => !downloadingMonth && setShowDownloadModal(false)}
           />
-          <div className="relative bg-white rounded-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 shadow-xl">
-            <div className="p-4 border-b border-black/5 flex justify-between items-center bg-slate-50/50">
+          <div className="relative bg-white rounded-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 shadow-xl border border-black/8">
+            <div className="p-4 border-b border-black/8 flex justify-between items-center bg-black/[0.015]">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
                   <Download className="w-4 h-4 text-primary" />
