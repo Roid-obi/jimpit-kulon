@@ -24,6 +24,7 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { getHouses } from "@/lib/services/houses";
 
 const db = getFirestore(app);
@@ -284,9 +285,28 @@ export default function DashboardPage() {
         <div className="absolute top-16 -left-16 w-40 h-40 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute -bottom-8 right-8 w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
 
-        {/* Top row: tanggal + tombol notifikasi */}
-        <div className="flex items-center justify-between mb-5 relative z-10">
-          <p className="text-[#f7f7f7]/60 text-xs font-medium">{todayStr}</p>
+        {/* Top row: logo + tanggal + tombol notifikasi */}
+        <div className="relative flex items-center justify-between mb-5 z-10 min-h-[36px]">
+          <Link
+            href="/dashboard"
+            className="flex items-center active:scale-95 transition-transform"
+          >
+            <Image
+              src="/jimpit-kulon-logo.png"
+              alt="Jimpit Kulon"
+              width={75}
+              height={26}
+              className="h-6 w-auto object-contain brightness-0 invert opacity-90"
+              priority
+            />
+          </Link>
+
+          <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none">
+            <p className="text-[#f7f7f7]/70 text-xs font-medium whitespace-nowrap">
+              {todayStr}
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={() => {
