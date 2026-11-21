@@ -294,11 +294,11 @@ export default function DashboardPage() {
               setHasUnreadNotif(false);
             }}
             aria-label="Buka Notifikasi"
-            className="relative w-9 h-9 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center text-[#f7f7f7] active:scale-95 transition-all shadow-sm"
+            className="relative p-2 -mr-2 text-white/80 hover:text-white active:scale-95 transition-all"
           >
-            <Bell className="w-4.5 h-4.5" />
+            <Bell className="w-6 h-6" />
             {hasUnreadNotif && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-[#6e3321]" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-amber-400 rounded-full" />
             )}
           </button>
         </div>
