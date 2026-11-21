@@ -140,6 +140,7 @@ export default function LandingPage() {
             alt="Jimpit Kulon"
             width={140}
             height={48}
+            style={{ width: "auto", height: "auto" }}
             className="h-9 sm:h-10 w-auto object-contain brightness-0 invert opacity-95"
             priority
           />
