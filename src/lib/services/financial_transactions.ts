@@ -45,7 +45,7 @@ export interface ExpenseInput {
 
 // Ambil semua transaksi (dengan filter opsional)
 export async function getTransactions(
-  filter?: "income" | "expense"
+  filter?: "income" | "expense",
 ): Promise<FinancialTransaction[]> {
   const transactionsCol = collection(db, "financial_transactions");
   // Fetch semua transaksi sorted by createdAt, filter type client-side
@@ -58,7 +58,7 @@ export async function getTransactions(
       ({
         id: doc.id,
         ...doc.data(),
-      }) as FinancialTransaction
+      }) as FinancialTransaction,
   );
 
   if (filter) {
@@ -70,7 +70,7 @@ export async function getTransactions(
 // Hitung ringkasan keuangan
 export async function getFinancialSummary(): Promise<FinancialSummary> {
   const transactions = await getTransactions();
-  
+
   let totalIncome = 0;
   let totalExpense = 0;
   let jimpitanIncome = 0;
@@ -111,7 +111,7 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
 
 // Ambil transaksi terbaru (untuk dashboard)
 export async function getRecentTransactions(
-  limitCount: number = 5
+  limitCount: number = 5,
 ): Promise<FinancialTransaction[]> {
   const transactions = await getTransactions();
   return transactions.slice(0, limitCount);
@@ -149,6 +149,3 @@ export async function addExpense(input: ExpenseInput): Promise<void> {
     createdAt: serverTimestamp(),
   });
 }
-
-
-

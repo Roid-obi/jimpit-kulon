@@ -36,30 +36,34 @@ service cloud.firestore {
     }
 
     // Houses Collection
+    // Public read: warga bisa lihat data rumah (untuk landing page & cari rumah)
     match /houses/{houseId} {
-      allow read: if isPetugas();
+      allow read: if true;
       allow create, update: if isAdmin();
       allow delete: if false;
     }
 
     // Periods Collection
+    // Public read: warga bisa lihat periode jimpitan (untuk landing page & halaman rumah)
     match /periods/{periodId} {
-      allow read: if isPetugas();
+      allow read: if true;
       allow create, update: if isAdmin();
       allow delete: if false;
     }
 
     // Payments Collection
+    // Public read: warga bisa lihat status bayar rumahnya sendiri
     match /payments/{paymentId} {
-      allow read: if isPetugas();
+      allow read: if true;
       allow create: if isPetugas();
       allow update: if isAdmin();
       allow delete: if false;
     }
 
     // Financial Transactions Collection
+    // Public read: transparansi saldo & transaksi untuk landing page
     match /financial_transactions/{transactionId} {
-      allow read: if isPetugas();
+      allow read: if true;
       allow create: if isPetugas();
       allow update, delete: if false;
     }

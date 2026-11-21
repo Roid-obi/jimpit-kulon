@@ -9,36 +9,40 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(body.password || "").trim();
-    const registrationCode = String(body.registrationCode || "").trim().toUpperCase();
+    const registrationCode = String(body.registrationCode || "")
+      .trim()
+      .toUpperCase();
 
     // 1. Validasi input dasar
     if (!name || name.length < 3) {
       return NextResponse.json(
         { error: "Nama lengkap minimal 3 karakter." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
         { error: "Format email tidak valid." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!password || password.length < 6) {
       return NextResponse.json(
         { error: "Password minimal 6 karakter." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!registrationCode) {
       return NextResponse.json(
         { error: "Kode registrasi petugas wajib diisi." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +53,10 @@ export async function POST(req: Request) {
 
     if (settingsDoc.exists) {
       const data = settingsDoc.data();
-      if (typeof data?.registrationCode === "string" && data.registrationCode.trim() !== "") {
+      if (
+        typeof data?.registrationCode === "string" &&
+        data.registrationCode.trim() !== ""
+      ) {
         expectedCode = data.registrationCode.trim().toUpperCase();
       }
       if (data?.isOpen === false) {
@@ -67,25 +74,36 @@ export async function POST(req: Request) {
     // 3. Periksa apakah pendaftaran sedang dibuka
     if (!isRegistrationOpen) {
       return NextResponse.json(
-        { error: "Pendaftaran petugas mandiri saat ini sedang ditutup oleh Admin RT." },
-        { status: 403 }
+        {
+          error:
+            "Pendaftaran petugas mandiri saat ini sedang ditutup oleh Admin RT.",
+        },
+        { status: 403 },
       );
     }
 
     // 4. Periksa kecocokan kode registrasi
     if (registrationCode !== expectedCode) {
       return NextResponse.json(
-        { error: "Kode registrasi petugas tidak valid. Silakan hubungi Admin / Ketua RT untuk meminta kode terbaru." },
-        { status: 400 }
+        {
+          error:
+            "Kode registrasi petugas tidak valid. Silakan hubungi Admin / Ketua RT untuk meminta kode terbaru.",
+        },
+        { status: 400 },
       );
     }
 
     // 5. Periksa duplikasi email di Firestore users
-    const existingSnap = await adminDb.collection("users").where("email", "==", email).get();
+    const existingSnap = await adminDb
+      .collection("users")
+      .where("email", "==", email)
+      .get();
     if (!existingSnap.empty) {
       return NextResponse.json(
-        { error: "Email sudah terdaftar. Silakan langsung masuk ke akun Anda." },
-        { status: 400 }
+        {
+          error: "Email sudah terdaftar. Silakan langsung masuk ke akun Anda.",
+        },
+        { status: 400 },
       );
     }
 
@@ -111,7 +129,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Registrasi petugas berhasil. Akun Anda langsung aktif dan dapat digunakan login.",
+      message:
+        "Registrasi petugas berhasil. Akun Anda langsung aktif dan dapat digunakan login.",
       user: {
         uid: userRecord.uid,
         email,
@@ -119,11 +138,12 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Terjadi kesalahan internal.";
+    const message =
+      err instanceof Error ? err.message : "Terjadi kesalahan internal.";
     console.error("Registration error:", err);
     return NextResponse.json(
       { error: `Gagal melakukan registrasi: ${message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

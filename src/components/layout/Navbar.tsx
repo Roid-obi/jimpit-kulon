@@ -14,8 +14,9 @@ export function Navbar() {
   };
 
   const getRoleBadge = (role?: string) => {
-    if (role === 'admin') return { label: 'Admin', class: 'bg-secondary text-[#f7f7f7]' };
-    return { label: 'Petugas', class: 'bg-primary/20 text-foreground' };
+    if (role === "admin")
+      return { label: "Admin", class: "bg-secondary text-[#f7f7f7]" };
+    return { label: "Petugas", class: "bg-primary/20 text-foreground" };
   };
 
   const badge = getRoleBadge(userData?.role);
@@ -38,11 +39,17 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
               <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[#000000] text-xs font-bold">
-                {userData.name?.[0]?.toUpperCase() || '?'}
+                {userData.name?.[0]?.toUpperCase() || "?"}
               </div>
               <div className="hidden xs:block">
-                <p className="text-xs font-semibold text-foreground leading-none">{userData.name}</p>
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${badge.class}`}>{badge.label}</span>
+                <p className="text-xs font-semibold text-foreground leading-none">
+                  {userData.name}
+                </p>
+                <span
+                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${badge.class}`}
+                >
+                  {badge.label}
+                </span>
               </div>
             </div>
           </div>

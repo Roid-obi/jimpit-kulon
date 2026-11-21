@@ -45,7 +45,7 @@ export async function getUsers(): Promise<AppUser[]> {
       ({
         id: doc.id,
         ...doc.data(),
-      }) as AppUser
+      }) as AppUser,
   );
 }
 
@@ -53,7 +53,7 @@ export async function getUsers(): Promise<AppUser[]> {
 async function requestAdminApi(
   getIdToken: () => Promise<string>,
   method: "POST" | "PATCH" | "DELETE",
-  bodyOrParams?: Record<string, unknown> | string
+  bodyOrParams?: Record<string, unknown> | string,
 ) {
   const token = await getIdToken();
   if (!token) {
@@ -79,7 +79,9 @@ async function requestAdminApi(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || `Permintaan gagal dengan status ${res.status}`);
+    throw new Error(
+      data.error || `Permintaan gagal dengan status ${res.status}`,
+    );
   }
 
   return data;
@@ -87,21 +89,29 @@ async function requestAdminApi(
 
 export async function createAdminUser(
   getIdToken: () => Promise<string>,
-  input: CreateUserInput
+  input: CreateUserInput,
 ): Promise<void> {
-  await requestAdminApi(getIdToken, "POST", input as unknown as Record<string, unknown>);
+  await requestAdminApi(
+    getIdToken,
+    "POST",
+    input as unknown as Record<string, unknown>,
+  );
 }
 
 export async function updateAdminUser(
   getIdToken: () => Promise<string>,
-  input: UpdateUserInput
+  input: UpdateUserInput,
 ): Promise<void> {
-  await requestAdminApi(getIdToken, "PATCH", input as unknown as Record<string, unknown>);
+  await requestAdminApi(
+    getIdToken,
+    "PATCH",
+    input as unknown as Record<string, unknown>,
+  );
 }
 
 export async function deleteAdminUser(
   getIdToken: () => Promise<string>,
-  targetUserId: string
+  targetUserId: string,
 ): Promise<void> {
   await requestAdminApi(getIdToken, "DELETE", targetUserId);
 }

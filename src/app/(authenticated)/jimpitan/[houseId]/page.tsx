@@ -164,13 +164,11 @@ export default function HouseDetailPage() {
   const formatPeriod = (period: Period) => {
     const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
     const start = period.startDate.toDate().toLocaleDateString("id-ID", opts);
-    const end = period.endDate
-      .toDate()
-      .toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
+    const end = period.endDate.toDate().toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
     return `${start} \u2013 ${end}`;
   };
 

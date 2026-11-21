@@ -37,7 +37,7 @@ export async function getActivePeriod(): Promise<Period | null> {
   const now = new Date();
   for (const doc of snapshot.docs) {
     const data = doc.data() as Period;
-    if (data.status !== 'archived') {
+    if (data.status !== "archived") {
       const start = data.startDate.toDate();
       const end = data.endDate.toDate();
       if (start <= now && end >= now) {
@@ -66,17 +66,14 @@ export async function addPeriod(
 export async function archivePeriod(id: string): Promise<void> {
   const docRef = doc(db, "periods", id);
   await updateDoc(docRef, {
-    status: "archived"
+    status: "archived",
   });
 }
 
 export async function updatePeriod(
   id: string,
-  data: Partial<Omit<Period, "id" | "createdAt">>
+  data: Partial<Omit<Period, "id" | "createdAt">>,
 ): Promise<void> {
   const docRef = doc(db, "periods", id);
   await updateDoc(docRef, data);
 }
-
-
-

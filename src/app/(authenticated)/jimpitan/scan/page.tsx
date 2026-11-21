@@ -1,19 +1,33 @@
-'use client';
+"use client";
 
-import { Html5Qrcode } from 'html5-qrcode';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { collection, getDocs, getFirestore, query, where } from 'firebase/firestore';
-import { app } from '@/lib/firebase/client';
-import { ArrowLeft, CheckCircle2, Search, X, Flashlight, FlashlightOff, ImagePlus } from 'lucide-react';
-import type { House } from '@/types/jimpitan';
+import { Html5Qrcode } from "html5-qrcode";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import {
+  collection,
+  getDocs,
+  getFirestore,
+  query,
+  where,
+} from "firebase/firestore";
+import { app } from "@/lib/firebase/client";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Search,
+  X,
+  Flashlight,
+  FlashlightOff,
+  ImagePlus,
+} from "lucide-react";
+import type { House } from "@/types/jimpitan";
 
 const db = getFirestore(app);
 
 export default function ScanQRPage() {
   const router = useRouter();
   const [house, setHouse] = useState<House | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -25,32 +39,35 @@ export default function ScanQRPage() {
   const stopAllTracks = useCallback(() => {
     // First, neutralize onabort handlers on all video elements
     // html5-qrcode sets onabort which throws errors when tracks are stopped
-    const videos = document.querySelectorAll('#qr-reader video');
-    videos.forEach(v => {
+    const videos = document.querySelectorAll("#qr-reader video");
+    videos.forEach((v) => {
       const video = v as HTMLVideoElement;
       video.onabort = null;
       video.onerror = null;
       video.onended = null;
       // Remove the video src to prevent play() interruption errors
       if (video.srcObject) {
-        (video.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+        (video.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
         video.srcObject = null;
       }
       video.remove();
     });
-    
+
     // Also stop tracks from the stored stream ref
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
   }, []);
 
-  const handleNavigate = useCallback((path: string) => {
-    stopAllTracks();
-    scannerRef.current = null;
-    router.push(path);
-  }, [stopAllTracks, router]);
+  const handleNavigate = useCallback(
+    (path: string) => {
+      stopAllTracks();
+      scannerRef.current = null;
+      router.push(path);
+    },
+    [stopAllTracks, router],
+  );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,7 +77,7 @@ export default function ScanQRPage() {
       if (scannerRef.current && scannerRef.current.getState() === 2) {
         scannerRef.current.pause();
       }
-      
+
       const fileScanner = new Html5Qrcode("qr-reader-file");
       const decodedText = await fileScanner.scanFile(file, false);
       processQRCode(decodedText);
@@ -69,26 +86,29 @@ export default function ScanQRPage() {
       console.error("Gagal membaca QR dari gambar", err);
       setErrorMsg("QR tidak ditemukan di gambar ini");
     }
-    
+
     // reset input
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const toggleFlashlight = useCallback(() => {
     if (!streamRef.current) return;
-    
+
     const videoTrack = streamRef.current.getVideoTracks()[0];
     if (!videoTrack) return;
 
     const newTorchState = !isTorchOn;
     try {
-      videoTrack.applyConstraints({
-        advanced: [{ torch: newTorchState } as any]
-      }).then(() => {
-        setIsTorchOn(newTorchState);
-      }).catch(() => {
-        // Torch not supported, silently ignore
-      });
+      videoTrack
+        .applyConstraints({
+          advanced: [{ torch: newTorchState } as any],
+        })
+        .then(() => {
+          setIsTorchOn(newTorchState);
+        })
+        .catch(() => {
+          // Torch not supported, silently ignore
+        });
     } catch {
       // Torch not supported
     }
@@ -97,24 +117,27 @@ export default function ScanQRPage() {
   const processQRCode = async (decodedText: string) => {
     if (isProcessing) return;
     setIsProcessing(true);
-    
+
     try {
       if (scannerRef.current && scannerRef.current.getState() === 2) {
         scannerRef.current.pause();
       }
-      
-      const q = query(collection(db, 'houses'), where('qrCode', '==', decodedText));
+
+      const q = query(
+        collection(db, "houses"),
+        where("qrCode", "==", decodedText),
+      );
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
         const houseDoc = snapshot.docs[0];
         setHouse({ id: houseDoc.id, ...houseDoc.data() } as House);
       } else {
-        setErrorMsg('QR tidak dikenali');
+        setErrorMsg("QR tidak dikenali");
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('Terjadi kesalahan saat mencari rumah');
+      setErrorMsg("Terjadi kesalahan saat mencari rumah");
     } finally {
       setIsProcessing(false);
     }
@@ -123,61 +146,77 @@ export default function ScanQRPage() {
   useEffect(() => {
     // Suppress AbortError overlay in dev mode
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (event.reason?.name === 'AbortError' 
-        || event.reason?.message?.includes('AbortError')
-        || event.reason?.name === 'OverconstrainedError'
-        || event.reason?.message?.includes('Unsupported constraint')) {
+      if (
+        event.reason?.name === "AbortError" ||
+        event.reason?.message?.includes("AbortError") ||
+        event.reason?.name === "OverconstrainedError" ||
+        event.reason?.message?.includes("Unsupported constraint")
+      ) {
         event.preventDefault();
       }
     };
     // Suppress uncaught errors from media
     const handleError = (event: ErrorEvent) => {
-      if (event.message?.includes('AbortError') 
-        || event.message?.includes('Unsupported constraint')
-        || event.message?.includes('play()')) {
+      if (
+        event.message?.includes("AbortError") ||
+        event.message?.includes("Unsupported constraint") ||
+        event.message?.includes("play()")
+      ) {
         event.preventDefault();
       }
     };
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    window.addEventListener('error', handleError);
-    
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    window.addEventListener("error", handleError);
+
     const html5QrCode = new Html5Qrcode("qr-reader");
     scannerRef.current = html5QrCode;
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10 },
-          (decodedText) => processQRCode(decodedText),
-          () => { /* scan error, ignore */ }
-        ).then(() => {
-          // After starting, grab the video element's stream and store it
-          const videoEl = document.querySelector('#qr-reader video') as HTMLVideoElement | null;
-          if (videoEl?.srcObject) {
-            streamRef.current = videoEl.srcObject as MediaStream;
-            // Check torch support
-            const track = streamRef.current.getVideoTracks()[0];
-            if (track) {
-              const capabilities = track.getCapabilities?.() as any;
-              if (capabilities?.torch) {
-                setTorchSupported(true);
+    Html5Qrcode.getCameras()
+      .then((devices) => {
+        if (devices && devices.length) {
+          html5QrCode
+            .start(
+              { facingMode: "environment" },
+              { fps: 10 },
+              (decodedText) => processQRCode(decodedText),
+              () => {
+                /* scan error, ignore */
+              },
+            )
+            .then(() => {
+              // After starting, grab the video element's stream and store it
+              const videoEl = document.querySelector(
+                "#qr-reader video",
+              ) as HTMLVideoElement | null;
+              if (videoEl?.srcObject) {
+                streamRef.current = videoEl.srcObject as MediaStream;
+                // Check torch support
+                const track = streamRef.current.getVideoTracks()[0];
+                if (track) {
+                  const capabilities = track.getCapabilities?.() as any;
+                  if (capabilities?.torch) {
+                    setTorchSupported(true);
+                  }
+                }
               }
-            }
-          }
-        }).catch(err => {
-          console.error("Error starting scanner", err);
-          setErrorMsg("Gagal mengakses kamera");
-        });
-      }
-    }).catch(err => {
-       console.error("Error getting cameras", err);
-       setErrorMsg("Gagal mengakses kamera");
-    });
+            })
+            .catch((err) => {
+              console.error("Error starting scanner", err);
+              setErrorMsg("Gagal mengakses kamera");
+            });
+        }
+      })
+      .catch((err) => {
+        console.error("Error getting cameras", err);
+        setErrorMsg("Gagal mengakses kamera");
+      });
 
     return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      window.removeEventListener('error', handleError);
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection,
+      );
+      window.removeEventListener("error", handleError);
       stopAllTracks();
       scannerRef.current = null;
     };
@@ -185,10 +224,11 @@ export default function ScanQRPage() {
 
   const handleScanAgain = () => {
     setHouse(null);
-    setErrorMsg('');
+    setErrorMsg("");
     if (scannerRef.current) {
       try {
-        if (scannerRef.current.getState() === 3) { // 3 = paused
+        if (scannerRef.current.getState() === 3) {
+          // 3 = paused
           scannerRef.current.resume();
         }
       } catch {
@@ -199,7 +239,9 @@ export default function ScanQRPage() {
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden flex flex-col">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         #qr-reader { border: none !important; }
         #qr-reader video {
           object-fit: cover !important;
@@ -221,11 +263,16 @@ export default function ScanQRPage() {
         .animate-slide-up-sheet {
           animation: slide-up-anim 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-      `}} />
+      `,
+        }}
+      />
 
       {/* Video Container */}
-      <div id="qr-reader" className="absolute inset-0 w-full h-full object-cover" />
-      
+      <div
+        id="qr-reader"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
       {/* Hidden container for file scanning */}
       <div id="qr-reader-file" className="hidden" />
 
@@ -233,12 +280,12 @@ export default function ScanQRPage() {
       <div className="absolute inset-0 pointer-events-none flex flex-col z-0">
         {/* Top dark area */}
         <div className="bg-black/60 flex-1 w-full" />
-        
+
         {/* Middle row with cutout */}
         <div className="flex h-[250px] w-full">
           {/* Left dark area */}
           <div className="bg-black/60 flex-1 h-full" />
-          
+
           {/* Cutout (transparent) */}
           <div className="w-[250px] h-[250px] relative">
             {/* Corners frame */}
@@ -246,88 +293,103 @@ export default function ScanQRPage() {
             <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-2xl" />
             <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-2xl" />
             <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-2xl" />
-            
+
             {/* Scanning line animation */}
-            {(!house && !errorMsg) && (
+            {!house && !errorMsg && (
               <div className="w-full h-0.5 bg-primary absolute left-0 shadow-[0_0_8px_rgba(245,181,83,0.8)] animate-scan-line" />
             )}
           </div>
-          
+
           {/* Right dark area */}
           <div className="bg-black/60 flex-1 h-full" />
         </div>
-        
+
         {/* Bottom dark area */}
         <div className="bg-black/60 flex-1 w-full flex flex-col items-center pt-6">
-          <p className="text-white font-medium text-sm drop-shadow-md">Arahkan kamera ke QR Code rumah</p>
+          <p className="text-white font-medium text-sm drop-shadow-md">
+            Arahkan kamera ke QR Code rumah
+          </p>
         </div>
       </div>
 
       {/* Top Bar (Overlay) */}
-      <div 
+      <div
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pb-4"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
+        style={{ paddingTop: "max(env(safe-area-inset-top, 16px), 16px)" }}
       >
-        <button 
-          onClick={() => handleNavigate('/jimpitan')} 
+        <button
+          onClick={() => handleNavigate("/jimpitan")}
           className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 text-white"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         {torchSupported && (
-          <button 
+          <button
             onClick={toggleFlashlight}
             className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center active:scale-95 text-white"
           >
-            {isTorchOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
+            {isTorchOn ? (
+              <FlashlightOff className="w-5 h-5" />
+            ) : (
+              <Flashlight className="w-5 h-5" />
+            )}
           </button>
         )}
       </div>
 
       {/* Bottom Container (Cari Manual) */}
       {!house && !errorMsg && (
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl px-6 pt-6 z-10 flex flex-col items-center animate-slide-up-sheet shadow-2xl"
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 32px), 32px)' }}
+          style={{
+            paddingBottom: "max(env(safe-area-inset-bottom, 32px), 32px)",
+          }}
         >
           <div className="w-10 h-1.5 bg-gray-200 rounded-full mb-6" />
           <div className="flex gap-3 w-full">
-            <button 
+            <button
               onClick={() => fileInputRef.current?.click()}
               className="flex-1 flex items-center justify-center gap-2 bg-primary text-[#000000] py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform"
             >
               <ImagePlus className="w-5 h-5" />
               Upload
             </button>
-            <button 
-              onClick={() => handleNavigate('/jimpitan')}
+            <button
+              onClick={() => handleNavigate("/jimpitan")}
               className="flex-1 flex items-center justify-center gap-2 bg-surface text-foreground py-4 rounded-2xl font-semibold active:scale-[0.98] transition-transform border border-border"
             >
               <Search className="w-5 h-5" />
               Manual
             </button>
           </div>
-          <input 
-            type="file" 
-            accept="image/*" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
           />
         </div>
       )}
 
       {/* Error Bottom Sheet */}
       {errorMsg && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl z-20 animate-slide-up-sheet flex flex-col items-center" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 24px), 24px)' }}>
+        <div
+          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl z-20 animate-slide-up-sheet flex flex-col items-center"
+          style={{
+            paddingBottom: "max(env(safe-area-inset-bottom, 24px), 24px)",
+          }}
+        >
           <div className="w-12 h-1.5 bg-gray-200 rounded-full mb-6" />
           <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
             <X className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-1 text-center">Gagal Membaca QR</h2>
+          <h2 className="text-xl font-bold text-foreground mb-1 text-center">
+            Gagal Membaca QR
+          </h2>
           <p className="text-foreground/60 text-center mb-8">{errorMsg}</p>
-          
-          <button 
+
+          <button
             onClick={handleScanAgain}
             className="w-full bg-secondary text-[#f7f7f7] py-3.5 rounded-xl font-bold text-base active:scale-[0.98] transition-transform"
           >
@@ -338,28 +400,39 @@ export default function ScanQRPage() {
 
       {/* Success Bottom Sheet */}
       {house && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl z-20 animate-slide-up-sheet flex flex-col" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 24px), 24px)' }}>
+        <div
+          className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-2xl z-20 animate-slide-up-sheet flex flex-col"
+          style={{
+            paddingBottom: "max(env(safe-area-inset-bottom, 24px), 24px)",
+          }}
+        >
           <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-          
+
           <div className="flex items-start gap-4 mb-6">
             <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center flex-shrink-0">
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-sm text-foreground/50 font-medium mb-0.5">Rumah Ditemukan</p>
-              <h2 className="text-xl font-bold text-foreground leading-tight">{house.headOfFamily}</h2>
-              <p className="text-foreground/70 text-sm mt-1">Rumah {house.houseNumber}</p>
+              <p className="text-sm text-foreground/50 font-medium mb-0.5">
+                Rumah Ditemukan
+              </p>
+              <h2 className="text-xl font-bold text-foreground leading-tight">
+                {house.headOfFamily}
+              </h2>
+              <p className="text-foreground/70 text-sm mt-1">
+                Rumah {house.houseNumber}
+              </p>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-3">
-            <button 
+            <button
               onClick={() => handleNavigate(`/jimpitan/${house.id}`)}
               className="w-full bg-primary text-[#000000] py-3.5 rounded-xl font-bold text-base active:scale-[0.98] transition-transform shadow-[0_4px_14px_rgba(245,181,83,0.4)]"
             >
               Lanjutkan
             </button>
-            <button 
+            <button
               onClick={handleScanAgain}
               className="w-full bg-transparent text-foreground/60 py-3.5 rounded-xl font-semibold text-sm active:scale-[0.98] transition-transform"
             >

@@ -24,10 +24,7 @@ export interface PaymentInput {
 }
 
 export async function getPaymentsByHouse(houseId: string): Promise<Payment[]> {
-  const q = query(
-    collection(db, "payments"),
-    where("houseId", "==", houseId),
-  );
+  const q = query(collection(db, "payments"), where("houseId", "==", houseId));
 
   const snapshot = await getDocs(q);
   const payments = snapshot.docs.map(
@@ -37,9 +34,11 @@ export async function getPaymentsByHouse(houseId: string): Promise<Payment[]> {
         ...doc.data(),
       }) as Payment,
   );
-  
+
   // Sort in memory to avoid requiring a composite index in Firestore
-  return payments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  return payments.sort(
+    (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis(),
+  );
 }
 
 export async function getPaymentsByPeriod(
@@ -66,7 +65,9 @@ export async function recordPayment(input: PaymentInput): Promise<void> {
     throw new Error("Nominal standar periode tidak valid.");
   }
   if (!Number.isFinite(input.amount) || input.amount < input.standardAmount) {
-    throw new Error("Nominal pembayaran tidak boleh kurang dari nominal periode.");
+    throw new Error(
+      "Nominal pembayaran tidak boleh kurang dari nominal periode.",
+    );
   }
 
   // Hanya pembayaran berstatus paid yang dianggap duplikat.
@@ -130,12 +131,15 @@ export async function recordPayment(input: PaymentInput): Promise<void> {
   await batch.commit();
 }
 
-export async function checkPaymentExists(houseId: string, periodId: string): Promise<boolean> {
+export async function checkPaymentExists(
+  houseId: string,
+  periodId: string,
+): Promise<boolean> {
   const existingQuery = query(
     collection(db, "payments"),
     where("houseId", "==", houseId),
     where("periodId", "==", periodId),
-    where("status", "==", "paid")
+    where("status", "==", "paid"),
   );
   const snapshot = await getDocs(existingQuery);
   return !snapshot.empty;
@@ -148,21 +152,26 @@ export interface MultiPeriodPaymentItem {
 
 export interface MultiPeriodPaymentInput {
   houseId: string;
-  periodIds?: string[];  // backward-compatible
+  periodIds?: string[]; // backward-compatible
   items?: MultiPeriodPaymentItem[]; // preferred: dynamic amount per period
-  paidBy: string;       // user UID
+  paidBy: string; // user UID
   standardAmountPerPeriod?: number; // fallback if items not provided
   extraAmount?: number; // kelebihan bayar (donasi)
 }
 
-export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): Promise<void> {
+export async function recordMultiPeriodPayment(
+  input: MultiPeriodPaymentInput,
+): Promise<void> {
   // Resolve items
   let paymentItems: MultiPeriodPaymentItem[] = [];
   if (input.items && input.items.length > 0) {
     paymentItems = input.items;
   } else if (input.periodIds && input.periodIds.length > 0) {
     const defaultAmt = input.standardAmountPerPeriod ?? 0;
-    paymentItems = input.periodIds.map(pid => ({ periodId: pid, amount: defaultAmt }));
+    paymentItems = input.periodIds.map((pid) => ({
+      periodId: pid,
+      amount: defaultAmt,
+    }));
   } else {
     throw new Error("Pilih minimal satu periode.");
   }
@@ -171,7 +180,7 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
     throw new Error("Pilih minimal satu periode.");
   }
 
-  const periodIdList = paymentItems.map(item => item.periodId);
+  const periodIdList = paymentItems.map((item) => item.periodId);
   if (new Set(periodIdList).size !== periodIdList.length) {
     throw new Error("Daftar periode mengandung duplikat.");
   }
@@ -182,17 +191,20 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
     }
   }
 
-  if (!Number.isFinite(input.extraAmount ?? 0) || (input.extraAmount ?? 0) < 0) {
+  if (
+    !Number.isFinite(input.extraAmount ?? 0) ||
+    (input.extraAmount ?? 0) < 0
+  ) {
     throw new Error("Nominal donasi tidak valid.");
   }
   const batch = writeBatch(db);
-  
+
   for (const item of paymentItems) {
     const existingQuery = query(
       collection(db, "payments"),
       where("houseId", "==", input.houseId),
       where("periodId", "==", item.periodId),
-      where("status", "==", "paid")
+      where("status", "==", "paid"),
     );
     const existingDocs = await getDocs(existingQuery);
     if (!existingDocs.empty) {
@@ -241,7 +253,10 @@ export async function recordMultiPeriodPayment(input: MultiPeriodPaymentInput): 
   await batch.commit();
 }
 
-export async function cancelPayment(paymentId: string, cancelledBy: string): Promise<void> {
+export async function cancelPayment(
+  paymentId: string,
+  cancelledBy: string,
+): Promise<void> {
   const paymentRef = doc(db, "payments", paymentId);
 
   // Nominal reversal diambil dari transaksi income yang benar-benar tercatat.
@@ -249,16 +264,18 @@ export async function cancelPayment(paymentId: string, cancelledBy: string): Pro
   const txQuery = query(
     collection(db, "financial_transactions"),
     where("paymentId", "==", paymentId),
-    where("type", "==", "income")
+    where("type", "==", "income"),
   );
   const txSnap = await getDocs(txQuery);
   let totalAmount = 0;
-  txSnap.forEach(txDoc => {
+  txSnap.forEach((txDoc) => {
     totalAmount += Number(txDoc.data().amount) || 0;
   });
 
   if (totalAmount <= 0) {
-    throw new Error("Tidak ada transaksi pemasukan terkait. Pembatalan dibatalkan agar kas tidak salah.");
+    throw new Error(
+      "Tidak ada transaksi pemasukan terkait. Pembatalan dibatalkan agar kas tidak salah.",
+    );
   }
 
   await runTransaction(db, async (transaction) => {
@@ -302,9 +319,6 @@ export async function getAllPayments(): Promise<Payment[]> {
       ({
         id: doc.id,
         ...doc.data(),
-      }) as Payment
+      }) as Payment,
   );
 }
-
-
-

@@ -58,17 +58,30 @@ body {
 }
 
 /* Allow text selection in input fields */
-input, textarea {
+input,
+textarea {
   user-select: text;
   -webkit-user-select: text;
 }
 
 /* Targeted transitions only */
-button, a, [role="button"] {
-  transition: opacity 150ms ease, transform 150ms ease, background-color 150ms ease;
+button,
+a,
+[role="button"] {
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    background-color 150ms ease;
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}

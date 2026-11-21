@@ -3,13 +3,20 @@
 ```text
 Jimpit Kulon
 │
-├── Public
+├── Landing Page (/)            ← PUBLIC, tanpa login
+│   ├── Saldo Dana Jimpitan
+│   ├── Transaksi Terbaru
+│   ├── Scan QR (/scan)         ← PUBLIC, tanpa login
+│   ├── Cari Rumah (search)
+│   └── Detail Rumah (/rumah/[houseId])  ← PUBLIC, tanpa login
+│
+├── Auth (public)
 │   ├── Login
 │   ├── Register
 │   ├── Verifikasi Email
 │   └── Lupa Password
 │
-└── Authenticated
+└── Authenticated (petugas/admin)
     │
     ├── Dashboard
     │
@@ -45,3 +52,12 @@ Jimpit Kulon
         ├── Manajemen Rumah
         └── Pengaturan Aplikasi
 ```
+
+## Role Warga
+
+Role "warga" TIDAK ADA. Warga tidak perlu login.
+Warga cukup mengakses landing page `/` → scan QR atau cari nama → lihat `/rumah/[houseId]`.
+
+Roles yang ada:
+- **admin**
+- **petugas**

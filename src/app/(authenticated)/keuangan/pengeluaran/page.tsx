@@ -243,13 +243,11 @@ export default function PengeluaranPage() {
                     <p className="text-xs text-foreground/50 mt-0.5">
                       Oleh: {exp.takenBy} &bull;{" "}
                       {exp.createdAt?.toDate
-                        ? exp.createdAt
-                            .toDate()
-                            .toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
+                        ? exp.createdAt.toDate().toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
                         : "Tanggal tidak tersedia"}
                     </p>
                   </div>

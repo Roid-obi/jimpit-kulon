@@ -234,13 +234,11 @@ export default function PemasukanPage() {
                     <p className="text-xs text-foreground/50 mt-0.5">
                       {getCategoryLabel(inc.category)} &bull;{" "}
                       {inc.createdAt?.toDate
-                        ? inc.createdAt
-                            .toDate()
-                            .toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
+                        ? inc.createdAt.toDate().toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
                         : "Tanggal tidak tersedia"}
                     </p>
                   </div>

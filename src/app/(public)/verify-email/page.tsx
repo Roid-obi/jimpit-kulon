@@ -23,7 +23,7 @@ export default function VerifyEmailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email }),
       });
-      
+
       if (!res.ok) {
         throw new Error("Gagal mengirim email verifikasi");
       }
@@ -59,13 +59,17 @@ export default function VerifyEmailPage() {
         <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
           <Mail className="w-8 h-8 text-primary" />
         </div>
-        
-        <h1 className="text-xl font-bold text-foreground mb-2">Verifikasi Email Anda</h1>
+
+        <h1 className="text-xl font-bold text-foreground mb-2">
+          Verifikasi Email Anda
+        </h1>
         <p className="text-sm text-foreground/50 leading-relaxed mb-1">
           Kami telah mengirimkan email verifikasi ke
         </p>
-        <p className="text-sm font-semibold text-secondary mb-6">{user?.email}</p>
-        
+        <p className="text-sm font-semibold text-secondary mb-6">
+          {user?.email}
+        </p>
+
         {/* Error/Success messages */}
         {message && (
           <div

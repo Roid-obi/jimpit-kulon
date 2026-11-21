@@ -80,20 +80,16 @@ export default function JimpitanPage() {
           <div className="flex items-center gap-1.5 mt-1">
             <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
             <p className="text-xs text-foreground/50">
-              {activePeriod.startDate
-                .toDate()
-                .toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                })}{" "}
+              {activePeriod.startDate.toDate().toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+              })}{" "}
               –{" "}
-              {activePeriod.endDate
-                .toDate()
-                .toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
+              {activePeriod.endDate.toDate().toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
             </p>
           </div>
         ) : (

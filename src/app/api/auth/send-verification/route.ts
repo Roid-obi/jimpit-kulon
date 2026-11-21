@@ -7,16 +7,15 @@ export async function POST(req: Request) {
     const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // 1. Generate Email Verification Link via Firebase Admin
     const actionCodeSettings = {
       // URL yang akan dibuka setelah verifikasi selesai (Bisa diarahkan ke dashboard/login)
-      url: process.env.NEXT_PUBLIC_APP_URL || "https://jimpit-kulon.vercel.app/login",
+      url:
+        process.env.NEXT_PUBLIC_APP_URL ||
+        "https://jimpit-kulon.vercel.app/login",
       handleCodeInApp: false, // set true jika butuh handling di aplikasi
     };
 
@@ -93,7 +92,10 @@ export async function POST(req: Request) {
 
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ success: true, message: "Verification email sent successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Verification email sent successfully",
+    });
   } catch (error: any) {
     console.error("Error sending verification email:", error);
     return NextResponse.json(
