@@ -46,11 +46,6 @@ export default function LandingPage() {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [isLoadingFinance, setIsLoadingFinance] = useState(true);
 
-  // --- Periode & Rumah State ---
-  const [activePeriod, setActivePeriod] = useState<any>(null);
-  const [housesLunas, setHousesLunas] = useState(0);
-  const [totalHouses, setTotalHouses] = useState(0);
-
   // --- Cari Rumah State ---
   const [searchQuery, setSearchQuery] = useState("");
   const [houses, setHouses] = useState<HouseSummary[]>([]);
@@ -75,9 +70,6 @@ export default function LandingPage() {
           setBalance(data.balance ?? 0);
           setTotalIncome(data.totalIncome ?? 0);
           setTotalExpense(data.totalExpense ?? 0);
-          setTotalHouses(data.totalHouses ?? 0);
-          setHousesLunas(data.housesLunas ?? 0);
-          setActivePeriod(data.activePeriod ?? null);
           setRecentTransactions(data.recentTransactions ?? []);
           setHouses(data.houses ?? []);
         }
@@ -126,15 +118,15 @@ export default function LandingPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const progressPct =
-    totalHouses > 0 ? Math.round((housesLunas / totalHouses) * 100) : 0;
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* ===== HERO HEADER ===== */}
       <div
-        className="relative bg-secondary overflow-hidden"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 20px)" }}
+        className="relative bg-secondary overflow-hidden px-5"
+        style={{
+          paddingTop: "max(env(safe-area-inset-top, 0px), 20px)",
+          paddingBottom: "28px",
+        }}
       >
         {/* Decorative blobs */}
         <div className="absolute -top-10 -right-10 w-52 h-52 bg-white/8 rounded-full pointer-events-none" />
@@ -142,18 +134,18 @@ export default function LandingPage() {
         <div className="absolute bottom-0 right-16 w-24 h-24 bg-primary/10 rounded-full pointer-events-none" />
 
         {/* Top bar: logo + tombol masuk */}
-        <div className="relative z-10 flex items-center justify-between px-5 pb-4">
+        <div className="relative z-10 flex items-center justify-between pb-5">
           <Image
             src="/jimpit-kulon-logo.png"
             alt="Jimpit Kulon"
-            width={100}
-            height={36}
-            className="h-7 w-auto object-contain brightness-0 invert opacity-90"
+            width={140}
+            height={48}
+            className="h-9 sm:h-10 w-auto object-contain brightness-0 invert opacity-95"
             priority
           />
           <Link
             href="/login"
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all border border-white/20 text-white text-xs font-semibold px-3.5 py-2 rounded-xl"
+            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm"
           >
             Masuk
             <ArrowRight className="w-3.5 h-3.5" />
@@ -161,8 +153,8 @@ export default function LandingPage() {
         </div>
 
         {/* Hero content */}
-        <div className="relative z-10 px-5 pb-6 pt-2">
-          <div className="mb-1">
+        <div className="relative z-10 pb-6 pt-1">
+          <div className="mb-1.5">
             <span className="text-primary text-xs font-bold tracking-widest uppercase">
               Pemuda Tunas Manunggal
             </span>
@@ -178,11 +170,11 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* Saldo Card */}
-        <div className="relative z-10 mx-5 mb-0">
-          <div className="bg-white/15 backdrop-blur-sm rounded-t-2xl p-5 border border-white/20 border-b-0 shadow-sm">
+        {/* Saldo Card — Utuh, proporsional, dan tidak terpotong */}
+        <div className="relative z-10">
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-5 border border-white/20 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0 pr-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Coins className="w-4 h-4 text-amber-300 shrink-0" />
                   <p className="text-[#f7f7f7]/70 text-xs font-semibold">
@@ -213,7 +205,7 @@ export default function LandingPage() {
                   </div>
                 )}
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center shrink-0 shadow-inner ml-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center shrink-0 shadow-inner">
                 <Coins className="w-7 h-7 text-amber-300" strokeWidth={2} />
               </div>
             </div>
@@ -221,89 +213,29 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Wave divider */}
-      <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none bg-secondary">
+      {/* Pembatas Gelombang Air Halus antara Header Coklat & Body */}
+      <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none">
         <svg
           viewBox="0 0 1440 70"
           preserveAspectRatio="none"
-          className="w-full h-7 text-background block"
+          className="w-full h-7 sm:h-8 text-secondary block"
         >
+          {/* Layer gelombang air tipis di belakang */}
           <path
             fill="currentColor"
-            d="M0,30 C360,70 1080,-10 1440,30 L1440,70 L0,70 Z"
+            fillOpacity="0.18"
+            d="M0,0 L1440,0 L1440,36 C1220,66 1000,24 760,48 C500,72 260,20 0,46 Z"
+          />
+          {/* Layer gelombang air utama di depan */}
+          <path
+            fill="currentColor"
+            d="M0,0 L1440,0 L1440,20 C1180,50 960,14 720,38 C460,62 220,12 0,28 Z"
           />
         </svg>
       </div>
 
       {/* ===== CONTENT ===== */}
-      <div className="flex-1 px-4 pb-10 -mt-1 space-y-4">
-        {/* Periode Berjalan */}
-        {(activePeriod || isLoadingFinance) && (
-          <div className="bg-white rounded-2xl p-4 border border-black/8 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm text-foreground">
-                Periode Berjalan
-              </h3>
-              {activePeriod && (
-                <span className="text-xs bg-primary/20 text-foreground font-semibold px-2.5 py-0.5 rounded-full">
-                  Aktif
-                </span>
-              )}
-            </div>
-            {isLoadingFinance ? (
-              <div className="space-y-2">
-                <div className="h-3.5 w-40 bg-black/5 rounded animate-pulse" />
-                <div className="h-2 w-full bg-black/5 rounded-full animate-pulse" />
-              </div>
-            ) : activePeriod ? (
-              <>
-                <p className="text-xs text-foreground/50 mb-3">
-                  {new Date(activePeriod.startDateMillis).toLocaleDateString(
-                    "id-ID",
-                    {
-                      day: "numeric",
-                      month: "short",
-                    },
-                  )}{" "}
-                  –{" "}
-                  {new Date(activePeriod.endDateMillis).toLocaleDateString(
-                    "id-ID",
-                    {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    },
-                  )}
-                </p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-foreground/60">
-                      {housesLunas} dari {totalHouses} rumah
-                    </span>
-                    <span className="font-bold text-primary">
-                      {progressPct}%
-                    </span>
-                  </div>
-                  <div className="w-full h-2.5 bg-black/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-[width] duration-700"
-                      style={{ width: `${Math.min(progressPct, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-600 font-medium">
-                      {housesLunas} Lunas
-                    </span>
-                    <span className="text-orange-500 font-medium">
-                      {totalHouses - housesLunas} Belum Bayar
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
-        )}
-
+      <div className="flex-1 px-4 pt-6 pb-12 space-y-4">
         {/* Transaksi Terbaru */}
         <div className="bg-white rounded-2xl border border-black/8 shadow-sm overflow-hidden">
           <div className="px-4 py-3.5 flex items-center justify-between border-b border-black/8 bg-black/[0.015]">
