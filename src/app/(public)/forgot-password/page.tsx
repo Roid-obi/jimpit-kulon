@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
-import { Mail, KeyRound } from "lucide-react";
+import { Mail, KeyRound, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -52,7 +52,21 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10">
+    <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10 relative">
+      {/* Tombol Kembali ke Login */}
+      <div
+        className="absolute top-0 left-0 p-4 sm:p-6 z-20"
+        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
+      >
+        <Link
+          href="/login"
+          className="w-10 h-10 rounded-2xl bg-white border border-black/8 shadow-sm flex items-center justify-center text-foreground hover:bg-black/[0.02] active:scale-95 transition-all"
+          aria-label="Kembali ke Login"
+        >
+          <ArrowLeft className="w-5 h-5 text-foreground/70" />
+        </Link>
+      </div>
+
       {/* Logo */}
       <div className="text-center mb-10">
         <Image
@@ -66,7 +80,7 @@ export default function ForgotPasswordPage() {
         <p className="text-sm text-foreground/50">Reset password akun Anda</p>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6 w-full max-w-sm mx-auto">
+      <div className="bg-white rounded-3xl shadow-sm border border-black/8 p-6 w-full max-w-sm mx-auto">
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
             <KeyRound className="w-8 h-8 text-primary" />
@@ -78,13 +92,15 @@ export default function ForgotPasswordPage() {
             Lupa Password?
           </h1>
           <p className="text-foreground/50 text-sm">
-            Masukkan email Anda dan kami akan mengirimkan tautan untuk mereset password.
+            Masukkan email Anda dan kami akan mengirimkan tautan untuk mereset
+            password.
           </p>
         </div>
 
         {isSent ? (
           <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 text-sm text-center border border-green-100">
-            Tautan reset password telah dikirim ke email Anda. Silakan periksa kotak masuk atau folder spam.
+            Tautan reset password telah dikirim ke email Anda. Silakan periksa
+            kotak masuk atau folder spam.
             <div className="mt-5">
               <Link
                 href="/login"

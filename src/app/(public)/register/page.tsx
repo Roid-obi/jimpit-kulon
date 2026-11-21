@@ -9,7 +9,15 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { app } from "@/lib/firebase/client";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { Eye, EyeOff, Mail, Lock, User, KeyRound } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  KeyRound,
+  ArrowLeft,
+} from "lucide-react";
 
 const registerSchema = z
   .object({
@@ -17,7 +25,9 @@ const registerSchema = z
     email: z.string().email({ message: "Email tidak valid" }),
     password: z.string().min(6, { message: "Password minimal 6 karakter" }),
     confirmPassword: z.string(),
-    registrationCode: z.string().min(1, { message: "Kode registrasi petugas wajib diisi" }),
+    registrationCode: z
+      .string()
+      .min(1, { message: "Kode registrasi petugas wajib diisi" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Password tidak cocok",
@@ -70,7 +80,10 @@ export default function RegisterPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat pendaftaran.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat pendaftaran.";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -78,7 +91,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10">
+    <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10 relative">
+      {/* Tombol Kembali ke Landing Page */}
+      <div
+        className="absolute top-0 left-0 p-4 sm:p-6 z-20"
+        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
+      >
+        <Link
+          href="/"
+          className="w-10 h-10 rounded-2xl bg-white border border-black/8 shadow-sm flex items-center justify-center text-foreground hover:bg-black/[0.02] active:scale-95 transition-all"
+          aria-label="Kembali ke Landing Page"
+        >
+          <ArrowLeft className="w-5 h-5 text-foreground/70" />
+        </Link>
+      </div>
+
       {/* Logo */}
       <div className="text-center mb-10">
         <Image
@@ -93,7 +120,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Card Form */}
-      <div className="bg-white rounded-3xl shadow-sm border border-black/5 p-6 w-full max-w-sm mx-auto">
+      <div className="bg-white rounded-3xl shadow-sm border border-black/8 p-6 w-full max-w-sm mx-auto">
         {/* Error */}
         {error && (
           <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-100">
@@ -104,7 +131,9 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5">Nama Lengkap</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Nama Lengkap
+            </label>
             <div className="relative">
               <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -115,12 +144,18 @@ export default function RegisterPage() {
                 autoComplete="name"
               />
             </div>
-            {errors.name && <p className="text-red-500 text-xs mt-1.5">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1.5">
+                {errors.name.message}
+              </p>
+            )}
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5">Email</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Email
+            </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -131,17 +166,23 @@ export default function RegisterPage() {
                 autoComplete="email"
               />
             </div>
-            {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1.5">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5">Password</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Password
+            </label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
                 {...register("password")}
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 className="w-full pl-10 pr-11 py-3.5 rounded-xl border border-black/10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
                 placeholder="Minimal 6 karakter"
                 autoComplete="new-password"
@@ -151,20 +192,30 @@ export default function RegisterPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
-            {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1.5">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5">Konfirmasi Password</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Konfirmasi Password
+            </label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
                 {...register("confirmPassword")}
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 className="w-full pl-10 pr-11 py-3.5 rounded-xl border border-black/10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
                 placeholder="Ulangi password"
                 autoComplete="new-password"
@@ -174,15 +225,25 @@ export default function RegisterPage() {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
               >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showConfirmPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1.5">{errors.confirmPassword.message}</p>}
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-xs mt-1.5">
+                {errors.confirmPassword.message}
+              </p>
+            )}
           </div>
 
           {/* Registration Code */}
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5">Kode Registrasi Petugas</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5">
+              Kode Registrasi Petugas
+            </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -194,7 +255,9 @@ export default function RegisterPage() {
               />
             </div>
             {errors.registrationCode ? (
-              <p className="text-red-500 text-xs mt-1.5">{errors.registrationCode.message}</p>
+              <p className="text-red-500 text-xs mt-1.5">
+                {errors.registrationCode.message}
+              </p>
             ) : (
               <p className="text-foreground/40 text-[11px] mt-1.5 leading-tight">
                 Minta kode registrasi terbaru kepada Admin atau Ketua RT.
@@ -212,14 +275,21 @@ export default function RegisterPage() {
                 <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                 Memproses...
               </span>
-            ) : 'Daftar Akun'}
+            ) : (
+              "Daftar Akun"
+            )}
           </button>
         </form>
 
         <div className="mt-6 pt-5 border-t border-black/5 text-center">
           <p className="text-sm text-foreground/50">
-            Sudah punya akun?{' '}
-            <Link href="/login" className="text-primary font-semibold hover:underline">Masuk</Link>
+            Sudah punya akun?{" "}
+            <Link
+              href="/login"
+              className="text-primary font-semibold hover:underline"
+            >
+              Masuk
+            </Link>
           </p>
         </div>
       </div>
