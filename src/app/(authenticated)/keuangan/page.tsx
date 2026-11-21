@@ -345,11 +345,11 @@ export default function KeuanganPage() {
         className="relative bg-secondary overflow-hidden px-5 shrink-0"
         style={{
           paddingTop: "max(env(safe-area-inset-top, 0px), 20px)",
-          paddingBottom: "28px",
+          paddingBottom: "20px",
         }}
       >
         <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/8 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-6 -left-10 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
+        <div className="absolute top-10 -left-6 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
 
         <div className="flex justify-between items-center relative z-10 mb-0.5">
           <h1 className="text-[#f7f7f7] text-2xl font-bold">Keuangan</h1>
@@ -381,8 +381,29 @@ export default function KeuanganPage() {
         )}
       </div>
 
+      {/* Pembatas Gelombang Air Halus antara Header Coklat & Body */}
+      <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none">
+        <svg
+          viewBox="0 0 1440 70"
+          preserveAspectRatio="none"
+          className="w-full h-6 sm:h-7 text-secondary block"
+        >
+          {/* Layer gelombang air tipis di belakang */}
+          <path
+            fill="currentColor"
+            fillOpacity="0.18"
+            d="M0,0 L1440,0 L1440,36 C1220,66 1000,24 760,48 C500,72 260,20 0,46 Z"
+          />
+          {/* Layer gelombang air utama di depan */}
+          <path
+            fill="currentColor"
+            d="M0,0 L1440,0 L1440,20 C1180,50 960,14 720,38 C460,62 220,12 0,28 Z"
+          />
+        </svg>
+      </div>
+
       {/* CONTENT */}
-      <div className="px-4 pt-4 flex-1 flex flex-col">
+      <div className="px-4 pt-3.5 flex-1 flex flex-col">
         {/* Tombol Aksi */}
         <div className="grid grid-cols-2 gap-2 mb-4 shrink-0">
           <Link

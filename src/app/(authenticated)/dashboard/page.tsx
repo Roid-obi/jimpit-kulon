@@ -277,13 +277,12 @@ export default function DashboardPage() {
         className="relative bg-secondary overflow-hidden px-5"
         style={{
           paddingTop: "max(env(safe-area-inset-top, 0px), 20px)",
-          paddingBottom: "32px",
+          paddingBottom: "20px",
         }}
       >
         {/* Decorative blobs */}
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/8 rounded-full pointer-events-none" />
-        <div className="absolute top-16 -left-16 w-40 h-40 bg-white/5 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-8 right-8 w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-44 h-44 bg-white/8 rounded-full pointer-events-none" />
+        <div className="absolute top-10 -left-10 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
 
         {/* Top row: logo + tanggal + tombol notifikasi */}
         <div className="relative flex items-center justify-between mb-5 z-10 min-h-[36px]">
@@ -356,8 +355,29 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Pembatas Gelombang Air Halus antara Header Coklat & Body */}
+      <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none">
+        <svg
+          viewBox="0 0 1440 70"
+          preserveAspectRatio="none"
+          className="w-full h-6 sm:h-7 text-secondary block"
+        >
+          {/* Layer gelombang air tipis di belakang */}
+          <path
+            fill="currentColor"
+            fillOpacity="0.18"
+            d="M0,0 L1440,0 L1440,36 C1220,66 1000,24 760,48 C500,72 260,20 0,46 Z"
+          />
+          {/* Layer gelombang air utama di depan */}
+          <path
+            fill="currentColor"
+            d="M0,0 L1440,0 L1440,20 C1180,50 960,14 720,38 C460,62 220,12 0,28 Z"
+          />
+        </svg>
+      </div>
+
       {/* === CONTENT === */}
-      <div className="px-4 pt-4 pb-8 space-y-4">
+      <div className="px-4 pt-3.5 pb-8 space-y-4">
         {/* Periode Berjalan */}
         <div className="bg-white rounded-2xl p-5 border border-black/8 shadow-sm">
           <div className="flex items-center justify-between mb-3">

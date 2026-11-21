@@ -74,12 +74,12 @@ export default function ProfilPage() {
         className="relative bg-secondary overflow-hidden"
         style={{
           paddingTop: "max(env(safe-area-inset-top, 0px), 20px)",
-          paddingBottom: "32px",
+          paddingBottom: "22px",
         }}
       >
         {/* Decorative */}
         <div className="absolute -top-10 -right-10 w-44 h-44 bg-white/8 rounded-full pointer-events-none" />
-        <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
+        <div className="absolute top-8 -left-8 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
 
         <div className="flex flex-col items-center relative z-10">
           {/* Avatar */}
@@ -103,8 +103,29 @@ export default function ProfilPage() {
         </div>
       </div>
 
+      {/* Pembatas Gelombang Air Halus antara Header Coklat & Body */}
+      <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none">
+        <svg
+          viewBox="0 0 1440 70"
+          preserveAspectRatio="none"
+          className="w-full h-6 sm:h-7 text-secondary block"
+        >
+          {/* Layer gelombang air tipis di belakang */}
+          <path
+            fill="currentColor"
+            fillOpacity="0.18"
+            d="M0,0 L1440,0 L1440,36 C1220,66 1000,24 760,48 C500,72 260,20 0,46 Z"
+          />
+          {/* Layer gelombang air utama di depan */}
+          <path
+            fill="currentColor"
+            d="M0,0 L1440,0 L1440,20 C1180,50 960,14 720,38 C460,62 220,12 0,28 Z"
+          />
+        </svg>
+      </div>
+
       {/* === CONTENT === */}
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-3.5">
         {/* Info cards */}
         <div className="space-y-2 mb-5">
           <div className="bg-white rounded-2xl px-4 py-3.5 border border-black/8 shadow-sm flex items-center justify-between">
