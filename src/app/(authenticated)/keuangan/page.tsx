@@ -21,6 +21,7 @@ import {
   SlidersHorizontal,
   X,
   ChevronRight,
+  Coins,
 } from "lucide-react";
 
 const db = getFirestore(app);
@@ -367,9 +368,12 @@ export default function KeuanganPage() {
           <div className="h-20 bg-white/10 rounded-2xl animate-pulse" />
         ) : (
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/10 relative z-10">
-            <p className="text-[#f7f7f7]/60 text-xs font-medium mb-1">
-              Saldo Dana Jimpitan
-            </p>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Coins className="w-4 h-4 text-amber-300 shrink-0" />
+              <p className="text-[#f7f7f7]/70 text-xs font-medium">
+                Saldo Dana Jimpitan
+              </p>
+            </div>
             <p className="text-[#f7f7f7] text-3xl font-bold tracking-tight leading-tight">
               {formatRupiah(balance)}
             </p>
@@ -638,12 +642,10 @@ export default function KeuanganPage() {
         (() => {
           const downloadedTxs = transactions.filter(
             (t) =>
-              t.createdAt
-                ?.toDate?.()
-                .toLocaleDateString("id-ID", {
-                  month: "long",
-                  year: "numeric",
-                }) === downloadingMonth ||
+              t.createdAt?.toDate?.().toLocaleDateString("id-ID", {
+                month: "long",
+                year: "numeric",
+              }) === downloadingMonth ||
               (downloadingMonth === "Bulan Ini" &&
                 t.createdAt?.toDate?.().getMonth() === new Date().getMonth() &&
                 t.createdAt?.toDate?.().getFullYear() ===
