@@ -22,6 +22,7 @@ import {
   Bell,
   Coins,
   Calendar,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -732,167 +733,189 @@ export default function BerandaPage() {
           </div>
         </div>
       )}
-      {/* NOTIFICATION MODAL */}
+      {/* FULL PAGE NOTIFIKASI */}
       {isNotificationOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden animate-in fade-in duration-150">
+          {/* Header Halaman Penuh */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsNotificationOpen(false)}
-          />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-4 px-5 border-b border-black/[0.06] flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary-foreground">
-                  <Bell className="w-4 h-4 text-amber-600" />
-                </div>
+            className="relative bg-secondary overflow-hidden px-4 pb-4 shrink-0 text-[#f7f7f7] shadow-sm"
+            style={{
+              paddingTop: "max(env(safe-area-inset-top, 0px), 16px)",
+            }}
+          >
+            {/* Decorative blobs */}
+            <div className="absolute -top-10 -right-10 w-44 h-44 bg-white/8 rounded-full pointer-events-none" />
+            <div className="absolute top-10 -left-10 w-36 h-36 bg-white/5 rounded-full pointer-events-none" />
+
+            <div className="relative z-10 flex items-center justify-between min-h-[40px]">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationOpen(false)}
+                  className="w-10 h-10 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 flex items-center justify-center text-white transition-all shadow-xs"
+                  aria-label="Kembali ke Beranda"
+                >
+                  <ArrowLeft className="w-5 h-5 text-white" />
+                </button>
                 <div>
-                  <h3 className="font-bold text-base text-foreground">
+                  <h1 className="font-bold text-lg text-[#f7f7f7] leading-tight">
                     Notifikasi
-                  </h3>
-                  <p className="text-xs text-foreground/50">
+                  </h1>
+                  <p className="text-xs text-[#f7f7f7]/60">
                     Pemberitahuan & aktivitas jimpitan
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsNotificationOpen(false)}
-                className="p-2 rounded-full bg-black/5 hover:bg-black/10 text-foreground/70 transition-colors"
-                aria-label="Tutup"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {/* Modal Body - Notification list */}
-            <div className="p-4 space-y-3 overflow-y-auto flex-1">
-              {/* Notif 1: Status Periode Berjalan */}
-              {activePeriod ? (
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <Calendar className="w-4.5 h-4.5" />
+              <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center shrink-0 shadow-inner">
+                <Bell className="w-5 h-5 text-amber-300" />
+              </div>
+            </div>
+          </div>
+
+          {/* Pembatas Gelombang Halus */}
+          <div className="overflow-hidden leading-none -mt-px pointer-events-none select-none shrink-0">
+            <svg
+              viewBox="0 0 1440 40"
+              preserveAspectRatio="none"
+              className="w-full h-4 sm:h-5 text-secondary block"
+            >
+              <path
+                fill="currentColor"
+                d="M0,0 L1440,0 L1440,20 C1180,35 960,10 720,25 C460,40 220,10 0,18 Z"
+              />
+            </svg>
+          </div>
+
+          {/* Body Konten Notifikasi Full Page */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 max-w-lg mx-auto w-full">
+            {/* Notif 1: Status Periode Berjalan */}
+            {activePeriod ? (
+              <div className="p-4 rounded-2xl bg-white border border-black/8 shadow-xs flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h4 className="font-bold text-sm text-foreground">
+                      Periode Jimpitan Aktif
+                    </h4>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800">
+                      Aktif
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <h4 className="font-bold text-xs text-amber-900">
-                        Periode Jimpitan Aktif
-                      </h4>
-                      <span className="text-[10px] text-amber-700/70 font-medium">
-                        Aktif
-                      </span>
-                    </div>
-                    <p className="text-xs text-amber-800 leading-relaxed">
-                      {formatPeriodDate(
-                        activePeriod.startDate,
-                        activePeriod.endDate,
-                      )}
-                    </p>
-                    <p className="text-[11px] text-amber-700 mt-1 font-medium">
-                      Progres: {housesLunas} dari {totalHouses} rumah (
+                  <p className="text-xs text-foreground/60 leading-relaxed">
+                    {formatPeriodDate(
+                      activePeriod.startDate,
+                      activePeriod.endDate,
+                    )}
+                  </p>
+                  <div className="mt-2.5 pt-2.5 border-t border-black/5 flex items-center justify-between text-xs">
+                    <span className="text-foreground/50">Progres Pembayaran</span>
+                    <span className="font-bold text-primary">
+                      {housesLunas} dari {totalHouses} rumah (
                       {totalHouses > 0
                         ? Math.round((housesLunas / totalHouses) * 100)
                         : 0}
-                      %) lunas.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Notif 2: Ringkasan Saldo */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
-                  <Coins className="w-4.5 h-4.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <h4 className="font-bold text-xs text-slate-800">
-                      Saldo Kas Jimpitan
-                    </h4>
-                    <span className="text-[10px] text-slate-400">
-                      Kas Terkini
+                      %)
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Total saldo kas saat ini tercatat sebesar{" "}
-                    <strong className="text-slate-900 font-bold">
-                      {formatRupiah(balance)}
-                    </strong>
-                    .
-                  </p>
                 </div>
               </div>
+            ) : null}
 
-              {/* Notif 3+: Transaksi terbaru */}
-              <div className="pt-2">
-                <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-wider mb-2 px-1">
-                  Aktivitas Transaksi Terbaru
+            {/* Notif 2: Ringkasan Saldo */}
+            <div className="p-4 rounded-2xl bg-white border border-black/8 shadow-xs flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h4 className="font-bold text-sm text-foreground">
+                    Saldo Kas Jimpitan
+                  </h4>
+                  <span className="text-[10px] font-semibold text-foreground/40">
+                    Kas Terkini
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/60 leading-relaxed">
+                  Total saldo kas jimpitan saat ini tercatat sebesar:
                 </p>
-                {recentTransactions.length > 0 ? (
-                  <div className="space-y-2">
-                    {recentTransactions.slice(0, 5).map((tx) => (
-                      <div
-                        key={tx.id}
-                        onClick={() => {
-                          setIsNotificationOpen(false);
-                          setSelectedTransaction(tx);
-                        }}
-                        className="p-3 rounded-xl bg-white border border-black/[0.06] hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-3 shadow-xs"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              tx.type === "income"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {tx.type === "income" ? (
-                              <TrendingUp className="w-4 h-4" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-xs text-slate-800 truncate">
-                              {tx.description || tx.category}
-                            </p>
-                            <p className="text-[10px] text-slate-400">
-                              {tx.dateStr || "Baru saja"}
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={`font-bold text-xs shrink-0 ${
-                            tx.type === "income"
-                              ? "text-green-600"
-                              : "text-red-500"
-                          }`}
-                        >
-                          {tx.type === "income" ? "+" : "-"}
-                          {formatRupiah(tx.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-6 text-center text-xs text-foreground/40">
-                    Belum ada riwayat aktivitas.
-                  </div>
-                )}
+                <p className="text-xl font-bold text-foreground mt-1 tracking-tight">
+                  {formatRupiah(balance)}
+                </p>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-black/[0.06] bg-slate-50/50">
-              <button
-                type="button"
-                onClick={() => setIsNotificationOpen(false)}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-secondary text-[#f7f7f7] hover:bg-secondary/90 active:scale-[0.98] transition-all shadow-xs"
-              >
-                Tutup
-              </button>
+            {/* Notif 3+: Transaksi terbaru */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2.5 px-1">
+                <p className="text-xs font-bold text-foreground/60 uppercase tracking-wider">
+                  Aktivitas Transaksi Terbaru
+                </p>
+                <span className="text-[11px] text-foreground/40">5 Terakhir</span>
+              </div>
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-2">
+                  {recentTransactions.slice(0, 5).map((tx) => (
+                    <div
+                      key={tx.id}
+                      onClick={() => {
+                        setIsNotificationOpen(false);
+                        setSelectedTransaction(tx);
+                      }}
+                      className="p-3.5 rounded-2xl bg-white border border-black/8 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-3 shadow-xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            tx.type === "income"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {tx.type === "income" ? (
+                            <TrendingUp className="w-4.5 h-4.5" />
+                          ) : (
+                            <TrendingDown className="w-4.5 h-4.5" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-foreground truncate">
+                            {tx.description || tx.category}
+                          </p>
+                          <p className="text-[11px] text-foreground/40 mt-0.5">
+                            {tx.dateStr || "Baru saja"}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`font-bold text-sm shrink-0 ${
+                          tx.type === "income"
+                            ? "text-green-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {tx.type === "income" ? "+" : "-"}
+                        {formatRupiah(tx.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-xs text-foreground/40 bg-white rounded-2xl border border-black/5">
+                  Belum ada riwayat aktivitas.
+                </div>
+              )}
             </div>
+
+            {/* Safe bottom spacer */}
+            <div
+              className="w-full pointer-events-none"
+              style={{
+                height: "max(env(safe-area-inset-bottom, 0px), 24px)",
+              }}
+            />
           </div>
         </div>
       )}
