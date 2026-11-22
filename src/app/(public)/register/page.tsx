@@ -11,7 +11,7 @@ import { app } from "@/lib/firebase/client";
 import {
   getAuth,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
 } from "firebase/auth";
 import {
@@ -152,15 +152,15 @@ export default function RegisterPage() {
           updatedAt: serverTimestamp(),
         });
 
-        router.push("/beranda");
+        // Sign out sesi baru agar pengguna masuk secara resmi lewat halaman login
+        await signOut(auth);
+        router.push("/login?registered=true");
         return;
       }
 
       if (res && res.ok) {
-        // Backend API 200 OK: Auto login
-        const auth = getAuth(app);
-        await signInWithEmailAndPassword(auth, cleanEmail, data.password);
-        router.push("/beranda");
+        // Backend API 200 OK: langsung dialihkan ke login
+        router.push("/login?registered=true");
         return;
       }
 

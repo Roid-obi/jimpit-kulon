@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         destination: "/beranda",
         permanent: true,
       },
+      {
+        source: "/verify-email",
+        destination: "/beranda",
+        permanent: false,
+      },
     ];
   },
 };

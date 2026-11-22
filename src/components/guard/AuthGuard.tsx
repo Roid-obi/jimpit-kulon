@@ -13,10 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!user) {
         router.replace("/login");
-      } else if (!user.emailVerified && !userData?.emailVerified) {
-        router.replace("/verify-email");
       }
-      // isActive check sudah ada, pertahankan
     }
   }, [user, userData, loading, router, pathname]);
 
@@ -28,7 +25,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user || (!user.emailVerified && !userData?.emailVerified)) {
+  if (!user) {
     return null; // Will redirect in useEffect
   }
 

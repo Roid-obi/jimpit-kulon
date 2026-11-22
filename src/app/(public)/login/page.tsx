@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { app } from "@/lib/firebase/client";
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid" }),
@@ -21,6 +21,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -33,6 +34,17 @@ export default function LoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("registered") === "true") {
+        setSuccessMessage(
+          "Pendaftaran akun berhasil! Silakan masuk menggunakan email dan password yang baru Anda buat.",
+        );
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -111,6 +123,16 @@ export default function LoginPage() {
 
       {/* Card Form */}
       <div className="bg-white rounded-3xl shadow-sm border border-black/8 p-6 w-full max-w-sm mx-auto">
+        {/* Success message setelah register */}
+        {successMessage && (
+          <div className="mb-5 p-3.5 rounded-xl bg-green-50 border border-green-200 flex items-start gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+            <p className="text-xs font-semibold text-green-800 leading-relaxed">
+              {successMessage}
+            </p>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-100">

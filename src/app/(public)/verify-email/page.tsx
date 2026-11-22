@@ -3,7 +3,7 @@
 import { getAuth } from "firebase/auth";
 import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { app } from "@/lib/firebase/client";
 
@@ -12,6 +12,15 @@ export default function VerifyEmailPage() {
   const [message, setMessage] = useState<string | null>(null);
   const { user, logout } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    // Verifikasi email telah dinonaktifkan, dialihkan ke beranda atau login
+    if (user) {
+      router.replace("/beranda");
+    } else {
+      router.replace("/login");
+    }
+  }, [user, router]);
 
   const handleResend = async () => {
     if (!user) return;
