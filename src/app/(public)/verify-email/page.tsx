@@ -48,8 +48,8 @@ export default function VerifyEmailPage() {
   };
 
   const handleLogout = async () => {
+    router.replace("/");
     await logout();
-    router.push("/login");
   };
 
   return (

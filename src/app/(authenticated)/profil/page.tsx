@@ -48,8 +48,8 @@ export default function ProfilPage() {
 
   const handleLogout = async () => {
     try {
+      router.replace("/");
       await logout();
-      router.push("/login");
     } catch (error) {
       console.error("Logout failed", error);
     }

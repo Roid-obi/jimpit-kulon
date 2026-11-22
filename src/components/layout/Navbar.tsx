@@ -9,8 +9,8 @@ export function Navbar() {
   const router = useRouter();
 
   const handleLogout = async () => {
+    router.replace("/");
     await logout();
-    router.replace("/login");
   };
 
   const getRoleBadge = (role?: string) => {

@@ -1203,7 +1203,7 @@ export default function AdminPage() {
             data ini.
           </p>
           <Link
-            href="/dashboard"
+            href="/beranda"
             className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-primary text-[#000000] font-bold text-sm shadow-xs active:scale-[0.98]"
           >
             Kembali ke Beranda
@@ -1355,7 +1355,7 @@ export default function AdminPage() {
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-black/8 space-y-2">
           <Link
-            href="/dashboard"
+            href="/beranda"
             className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl border border-black/8 bg-white hover:bg-black/[0.02] text-foreground text-xs font-semibold transition-colors active:scale-[0.98]"
           >
             <span>Kembali ke Beranda</span>
@@ -1364,8 +1364,8 @@ export default function AdminPage() {
           <button
             onClick={async () => {
               if (window.confirm("Yakin ingin keluar dari akun?")) {
+                router.replace("/");
                 await logout();
-                router.push("/login");
               }
             }}
             className="flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
@@ -1432,7 +1432,7 @@ export default function AdminPage() {
             </button>
 
             <Link
-              href="/dashboard"
+              href="/beranda"
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-secondary text-[#f7f7f7] hover:bg-secondary/90 text-xs font-bold transition-colors"
             >
               <span>Aplikasi Warga</span>

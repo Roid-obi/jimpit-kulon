@@ -35,7 +35,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (!loading && user) router.replace("/dashboard");
+    if (!loading && user) {
+      setIsLoading(true);
+      router.replace("/beranda");
+    }
   }, [user, loading, router]);
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -44,7 +47,10 @@ export default function LoginPage() {
     try {
       const auth = getAuth(app);
       await signInWithEmailAndPassword(auth, data.email, data.password);
+      router.replace("/beranda");
+      // isLoading sengaja tidak di-set false agar animasi loading tetap menyala sampai beranda terbuka
     } catch (err: any) {
+      setIsLoading(false);
       const firebaseErrors: Record<string, string> = {
         "auth/invalid-credential": "Email atau password salah.",
         "auth/user-not-found": "Akun tidak ditemukan.",
@@ -54,13 +60,28 @@ export default function LoginPage() {
       setError(
         firebaseErrors[err.code] || "Terjadi kesalahan. Silakan coba lagi.",
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10 relative">
+      {/* Overlay loading terus menyala saat login berhasil sampai beranda termuat */}
+      {isLoading && !error && (
+        <div className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px] flex flex-col items-center justify-center pointer-events-auto transition-all animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col items-center gap-3.5 border border-black/5 mx-4 max-w-xs text-center">
+            <div className="w-10 h-10 border-3 border-secondary/20 border-t-secondary rounded-full animate-spin" />
+            <div>
+              <p className="text-sm font-bold text-foreground">
+                Masuk ke Beranda...
+              </p>
+              <p className="text-xs text-foreground/50 mt-0.5">
+                Menyiapkan sesi akun Anda
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tombol Kembali ke Landing Page */}
       <div
         className="absolute top-0 left-0 p-4 sm:p-6 z-20"

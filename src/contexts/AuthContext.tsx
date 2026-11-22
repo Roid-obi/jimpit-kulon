@@ -72,6 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     const auth = getAuth(app);
     await firebaseSignOut(auth);
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   };
 
   return (

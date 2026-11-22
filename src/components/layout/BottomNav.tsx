@@ -12,7 +12,7 @@ export function BottomNav() {
     exact ? pathname === path : pathname?.startsWith(path);
 
   const navItems = [
-    { href: "/dashboard", icon: Home, label: "Beranda", exact: true },
+    { href: "/beranda", icon: Home, label: "Beranda", exact: true },
     {
       href: "/jimpitan",
       icon: ClipboardList,
@@ -34,14 +34,14 @@ export function BottomNav() {
       >
         {/* Beranda */}
         <Link
-          href="/dashboard"
+          href="/beranda"
           className={`flex flex-col items-center gap-0.5 min-w-[52px] ${
-            isActive("/dashboard", true) ? "text-primary" : "text-foreground/35"
+            isActive("/beranda", true) ? "text-primary" : "text-foreground/35"
           }`}
         >
           <Home
             className="w-6 h-6"
-            strokeWidth={isActive("/dashboard", true) ? 2.5 : 1.8}
+            strokeWidth={isActive("/beranda", true) ? 2.5 : 1.8}
           />
           <span className="text-[10px] font-medium">Beranda</span>
         </Link>

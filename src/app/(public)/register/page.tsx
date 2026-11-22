@@ -152,7 +152,7 @@ export default function RegisterPage() {
           updatedAt: serverTimestamp(),
         });
 
-        router.push("/dashboard");
+        router.push("/beranda");
         return;
       }
 
@@ -160,7 +160,7 @@ export default function RegisterPage() {
         // Backend API 200 OK: Auto login
         const auth = getAuth(app);
         await signInWithEmailAndPassword(auth, cleanEmail, data.password);
-        router.push("/dashboard");
+        router.push("/beranda");
         return;
       }
 

@@ -40,7 +40,7 @@ const formatPeriodDate = (start: Timestamp, end: Timestamp) => {
   return `${start.toDate().toLocaleDateString("id-ID", { day: "numeric", month: "short" })} – ${end.toDate().toLocaleDateString("id-ID", opts)}`;
 };
 
-export default function DashboardPage() {
+export default function BerandaPage() {
   const { userData } = useAuth();
   const [balance, setBalance] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
@@ -265,7 +265,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col p-4 max-w-lg mx-auto w-full items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-        <p className="mt-4 text-gray-500">Memuat dashboard...</p>
+        <p className="mt-4 text-gray-500">Memuat beranda...</p>
       </div>
     );
   }
@@ -287,7 +287,7 @@ export default function DashboardPage() {
         {/* Top row: logo + tanggal + tombol notifikasi */}
         <div className="relative flex items-center justify-between mb-5 z-10 min-h-[36px]">
           <Link
-            href="/dashboard"
+            href="/beranda"
             className="flex items-center active:scale-95 transition-transform"
           >
             <Image

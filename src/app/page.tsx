@@ -34,10 +34,10 @@ export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Redirect authenticated petugas/admin ke dashboard
+  // Redirect authenticated petugas/admin ke beranda
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/dashboard");
+      router.replace("/beranda");
     }
   }, [user, loading, router]);
 
@@ -263,7 +263,7 @@ export default function LandingPage() {
         <div className="absolute top-16 -left-12 w-40 h-40 bg-white/5 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 right-16 w-24 h-24 bg-primary/10 rounded-full pointer-events-none" />
 
-        {/* Top bar: logo + tombol masuk */}
+        {/* Top bar: logo + tombol daftar & masuk */}
         <div className="relative z-10 flex items-center justify-between pb-5">
           <Image
             src="/jimpit-kulon-logo.png"
@@ -274,13 +274,21 @@ export default function LandingPage() {
             className="h-9 sm:h-10 w-auto object-contain brightness-0 invert opacity-95"
             priority
           />
-          <Link
-            href="/login"
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm"
-          >
-            Masuk
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/register"
+              className="text-[#f7f7f7]/90 hover:text-white hover:bg-white/10 active:scale-95 transition-all border border-white/20 text-xs font-semibold px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl shadow-xs"
+            >
+              Daftar
+            </Link>
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 active:scale-95 transition-all border border-white/20 text-white text-xs font-semibold px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-sm"
+            >
+              Masuk
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         {/* Hero content */}
@@ -570,6 +578,19 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Link Pendaftaran Petugas */}
+        <div className="text-center py-1">
+          <p className="text-xs text-foreground/50">
+            Petugas baru dusun?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-secondary hover:underline"
+            >
+              Daftar akun di sini
+            </Link>
+          </p>
         </div>
       </div>
 
