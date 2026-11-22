@@ -29,7 +29,6 @@ import {
   KeyRound,
   ArrowLeft,
   AlertCircle,
-  Info,
 } from "lucide-react";
 
 const registerSchema = z
@@ -126,7 +125,7 @@ export default function RegisterPage() {
         console.warn("Backend register error 500, fallback ke Client SDK...");
         if (cleanCode !== "JIMPIT-KULON") {
           throw new Error(
-            `Kode registrasi "${cleanCode}" salah. Silakan masukkan kode default: JIMPIT-KULON`,
+            `Kode registrasi "${cleanCode}" salah. Silakan hubungi Admin / Pengurus RT untuk meminta kode yang benar.`,
           );
         }
 
@@ -372,23 +371,9 @@ export default function RegisterPage() {
                   setValue("registrationCode", e.target.value.toUpperCase())
                 }
                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-amber-300/80 bg-amber-50/40 font-mono font-bold tracking-wider uppercase focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm text-foreground"
-                placeholder="JIMPIT-KULON"
+                placeholder="Masukkan kode registrasi"
                 autoCapitalize="characters"
               />
-            </div>
-
-            {/* Helper Callout Box */}
-            <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-start gap-2">
-              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900 leading-snug">
-                <span className="font-semibold">Kode Default: </span>
-                <span className="font-mono font-bold bg-white/80 px-1.5 py-0.5 rounded border border-amber-300/50 text-amber-900">
-                  JIMPIT-KULON
-                </span>
-                <p className="mt-1 text-[11px] text-amber-800/80">
-                  Gunakan kode di atas jika belum diganti oleh pengurus RT.
-                </p>
-              </div>
             </div>
 
             {errors.registrationCode && (

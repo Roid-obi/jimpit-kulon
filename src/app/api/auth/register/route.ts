@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Kode registrasi petugas wajib diisi. Silakan hubungi Admin RT untuk mendapatkan kode (Kode default awal: JIMPIT-KULON).",
+            "Kode registrasi petugas wajib diisi. Silakan hubungi Admin / Pengurus RT untuk mendapatkan kode.",
         },
         { status: 400 },
       );
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     if (registrationCode !== expectedCode) {
       return NextResponse.json(
         {
-          error: `Kode registrasi "${registrationCode}" tidak valid. Pastikan Anda memasukkan kode yang benar dari pengurus RT (Kode default awal: ${DEFAULT_FALLBACK_CODE}).`,
+          error: `Kode registrasi "${registrationCode}" tidak valid. Pastikan Anda memasukkan kode yang benar dari pengurus RT.`,
         },
         { status: 400 },
       );
