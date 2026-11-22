@@ -3,6 +3,16 @@
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase/client";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -65,26 +75,103 @@ export default function PublicHouseDetailPage() {
     if (!houseId) return;
 
     let isMounted = true;
+
+    const fetchFromClientSdk = async () => {
+      try {
+        const houseSnap = await getDoc(doc(db, "houses", houseId));
+        if (!houseSnap.exists()) {
+          if (isMounted) setNotFound(true);
+          return;
+        }
+        const hData = { id: houseSnap.id, ...houseSnap.data() } as PublicHouse;
+
+        const [periodsSnap, paymentsSnap] = await Promise.all([
+          getDocs(
+            query(collection(db, "periods"), orderBy("startDate", "asc")),
+          ).catch(async () => {
+            return await getDocs(collection(db, "periods"));
+          }),
+          getDocs(
+            query(
+              collection(db, "payments"),
+              where("houseId", "==", houseId),
+              where("status", "==", "paid"),
+            ),
+          ).catch(async () => {
+            return await getDocs(collection(db, "payments"));
+          }),
+        ]);
+
+        const periodsData = periodsSnap.docs.map((dDoc) => {
+          const d = dDoc.data();
+          const startMillis = d.startDate?.toMillis
+            ? d.startDate.toMillis()
+            : d.startDate?.seconds
+              ? d.startDate.seconds * 1000
+              : d.startDate?._seconds
+                ? d.startDate._seconds * 1000
+                : 0;
+          const endMillis = d.endDate?.toMillis
+            ? d.endDate.toMillis()
+            : d.endDate?.seconds
+              ? d.endDate.seconds * 1000
+              : d.endDate?._seconds
+                ? d.endDate._seconds * 1000
+                : 0;
+          return {
+            id: dDoc.id,
+            periodNumber: d.periodNumber,
+            startDateMillis: startMillis,
+            endDateMillis: endMillis,
+            amount: d.amount || 0,
+            status: d.status || "active",
+          };
+        });
+
+        const paymentsData = paymentsSnap.docs.map((dDoc) => {
+          const d = dDoc.data();
+          return {
+            id: dDoc.id,
+            periodId: d.periodId,
+            status: d.status,
+          };
+        });
+
+        if (isMounted) {
+          setHouse(hData);
+          setPeriods(periodsData);
+          setPayments(paymentsData);
+          setNotFound(false);
+        }
+      } catch (clientErr) {
+        console.error("Client SDK fallback error:", clientErr);
+        if (isMounted) setNotFound(true);
+      }
+    };
+
     const fetchHouseData = async () => {
       setIsLoading(true);
       try {
         const res = await fetch(`/api/public/houses/${houseId}`);
         if (!res.ok) {
           if (res.status === 404) {
-            setNotFound(true);
+            // Cek sekali lagi via client SDK untuk memastikan bukan 404 palsu karena API error
+            await fetchFromClientSdk();
             return;
           }
-          throw new Error("Gagal mengambil data rumah");
+          throw new Error("Gagal mengambil data rumah via API");
         }
         const data = await res.json();
-        if (isMounted && data.success) {
+        if (isMounted && data.success && data.house) {
           setHouse(data.house);
           setPeriods(data.periods || []);
           setPayments(data.payments || []);
+        } else {
+          await fetchFromClientSdk();
         }
       } catch (err) {
-        console.error("Error fetching public house data:", err);
-        setNotFound(true);
+        console.warn("API house fetch failed, falling back to Client SDK:", err);
+        await fetchFromClientSdk();
       } finally {
         if (isMounted) {
           setIsLoading(false);

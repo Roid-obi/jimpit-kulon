@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { db } from "@/lib/firebase/client";
+import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
 import {
   Coins,
   TrendingUp,
@@ -53,28 +55,190 @@ export default function LandingPage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Fetch data landing page dari API publik
+  // Fetch data landing page (Dual-fetch: API publik + Client SDK Fallback)
   useEffect(() => {
     let isMounted = true;
+
+    // Fallback langsung menggunakan Firebase Client SDK jika API bermasalah atau kosong
+    const fetchFromClientSdk = async () => {
+      try {
+        const [txSnap, housesSnap] = await Promise.all([
+          getDocs(
+            query(
+              collection(db, "financial_transactions"),
+              orderBy("createdAt", "desc"),
+            ),
+          ).catch(async () => {
+            // Fallback tanpa orderBy jika butuh indeks
+            return await getDocs(collection(db, "financial_transactions"));
+          }),
+          getDocs(
+            query(collection(db, "houses"), where("isActive", "==", true)),
+          ).catch(async () => {
+            return await getDocs(collection(db, "houses"));
+          }),
+        ]);
+
+        // 1. Data Rumah
+        const housesData: HouseSummary[] = [];
+        const housesMap = new Map<string, string>();
+
+        housesSnap.docs.forEach((doc) => {
+          const d = doc.data();
+          if (d.isActive !== false) {
+            housesData.push({
+              id: doc.id,
+              houseNumber: d.houseNumber || "",
+              headOfFamily: d.headOfFamily || "",
+              address: d.address || "",
+            });
+            housesMap.set(
+              doc.id,
+              d.headOfFamily || d.houseNumber || "Rumah Warga",
+            );
+          }
+        });
+
+        housesData.sort((a, b) => {
+          const numA = parseInt(a.houseNumber, 10);
+          const numB = parseInt(b.houseNumber, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          return a.houseNumber.localeCompare(b.houseNumber);
+        });
+
+        // 2. Transaksi & Saldo
+        let income = 0;
+        let expense = 0;
+        const rawTx: any[] = [];
+
+        txSnap.docs.forEach((doc) => {
+          const d = doc.data();
+          const amt = Number(d.amount) || 0;
+          if (d.type === "income") income += amt;
+          else if (d.type === "expense") expense += amt;
+
+          const createdMillis = d.createdAt?.toMillis
+            ? d.createdAt.toMillis()
+            : d.createdAt?.seconds
+              ? d.createdAt.seconds * 1000
+              : d.createdAt?._seconds
+                ? d.createdAt._seconds * 1000
+                : Date.now();
+
+          rawTx.push({
+            id: doc.id,
+            ...d,
+            amount: amt,
+            createdAtMillis: createdMillis,
+          });
+        });
+
+        // Grouping transaksi jimpitan
+        const jimpitanByDay: Record<
+          string,
+          { dateMillis: number; transactions: any[] }
+        > = {};
+        const groupedData: any[] = [];
+
+        rawTx.forEach((t) => {
+          const cat = (t.category || "").toLowerCase();
+          const isJimpitan =
+            (cat === "payment" || cat.includes("jimpitan")) &&
+            t.type === "income";
+          const isCancel = cat === "cancellation";
+
+          if (isJimpitan || isCancel) {
+            const dObj = new Date(t.createdAtMillis);
+            const dateStr = dObj.toLocaleDateString("id-ID");
+            if (!jimpitanByDay[dateStr]) {
+              jimpitanByDay[dateStr] = {
+                dateMillis: t.createdAtMillis,
+                transactions: [],
+              };
+            }
+            if (t.houseId && housesMap.has(t.houseId)) {
+              const houseName = housesMap.get(t.houseId);
+              t.description = isCancel
+                ? `Pembatalan - ${houseName}`
+                : houseName;
+            } else if (isJimpitan) {
+              t.description = "Jimpitan";
+            }
+            jimpitanByDay[dateStr].transactions.push(t);
+          } else {
+            groupedData.push(t);
+          }
+        });
+
+        Object.keys(jimpitanByDay).forEach((dateStr) => {
+          const group = jimpitanByDay[dateStr];
+          if (!group.transactions.length) return;
+          let gIncome = 0;
+          let gExpense = 0;
+          group.transactions.forEach((t) => {
+            if (t.type === "income") gIncome += t.amount;
+            if (t.type === "expense") gExpense += t.amount;
+          });
+          const net = gIncome - gExpense;
+          groupedData.push({
+            id: `jimpitan-group-${dateStr}`,
+            type: net >= 0 ? "income" : "expense",
+            category: "JIMPITAN",
+            amount: Math.abs(net),
+            description: "Setoran Jimpitan",
+            createdAtMillis: group.dateMillis,
+            isGrouped: true,
+            subCount: group.transactions.length,
+          });
+        });
+
+        groupedData.sort((a, b) => b.createdAtMillis - a.createdAtMillis);
+        const top5 = groupedData.slice(0, 5);
+
+        if (isMounted) {
+          setBalance(income - expense);
+          setTotalIncome(income);
+          setTotalExpense(expense);
+          setRecentTransactions(top5);
+          if (housesData.length > 0) {
+            setHouses(housesData);
+          }
+        }
+      } catch (clientErr) {
+        console.error("Client SDK fallback error:", clientErr);
+      }
+    };
 
     const fetchLandingData = async () => {
       try {
         setIsLoadingFinance(true);
         const res = await fetch("/api/public/landing");
         if (!res.ok) {
-          throw new Error("Gagal mengambil data landing page");
+          throw new Error(`HTTP error ${res.status}`);
         }
         const data = await res.json();
 
-        if (isMounted && data.success) {
+        if (
+          isMounted &&
+          data.success &&
+          (data.recentTransactions?.length > 0 ||
+            data.balance !== 0 ||
+            data.houses?.length > 0)
+        ) {
           setBalance(data.balance ?? 0);
           setTotalIncome(data.totalIncome ?? 0);
           setTotalExpense(data.totalExpense ?? 0);
           setRecentTransactions(data.recentTransactions ?? []);
           setHouses(data.houses ?? []);
+        } else {
+          // Jika endpoint berhasil tapi data kosong, pastikan cek Firestore langsung
+          await fetchFromClientSdk();
         }
       } catch (err) {
-        console.error("Error fetching landing data:", err);
+        console.warn("API landing fetch gagal, beralih ke Client SDK:", err);
+        await fetchFromClientSdk();
       } finally {
         if (isMounted) {
           setIsLoadingFinance(false);
