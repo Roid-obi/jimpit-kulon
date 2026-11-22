@@ -43,8 +43,6 @@ export default function LandingPage() {
 
   // --- Keuangan State ---
   const [balance, setBalance] = useState(0);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [isLoadingFinance, setIsLoadingFinance] = useState(true);
 
@@ -200,8 +198,6 @@ export default function LandingPage() {
 
         if (isMounted) {
           setBalance(income - expense);
-          setTotalIncome(income);
-          setTotalExpense(expense);
           setRecentTransactions(top5);
           if (housesData.length > 0) {
             setHouses(housesData);
@@ -322,22 +318,6 @@ export default function LandingPage() {
                   <p className="text-[#f7f7f7] text-3xl font-bold tracking-tight">
                     {formatRupiah(balance)}
                   </p>
-                )}
-                {!isLoadingFinance && (
-                  <div className="flex items-center gap-4 mt-2.5">
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                      <span className="text-[#f7f7f7]/60 text-xs">
-                        {formatRupiah(totalIncome)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <TrendingDown className="w-3.5 h-3.5 text-red-400" />
-                      <span className="text-[#f7f7f7]/60 text-xs">
-                        {formatRupiah(totalExpense)}
-                      </span>
-                    </div>
-                  </div>
                 )}
               </div>
               <div className="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-300/30 flex items-center justify-center shrink-0 shadow-inner">
