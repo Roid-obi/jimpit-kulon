@@ -12,7 +12,9 @@ export default function AuthenticatedLayout({
   const pathname = usePathname();
   const isScanPage = pathname === "/jimpitan/scan";
   const isAdminPage = pathname?.startsWith("/admin");
-  const hideBottomNav = isScanPage || isAdminPage;
+  const isHouseDetailPage =
+    Boolean(pathname?.startsWith("/jimpitan/")) && pathname !== "/jimpitan";
+  const hideBottomNav = isScanPage || isAdminPage || isHouseDetailPage;
 
   return (
     <AuthGuard>

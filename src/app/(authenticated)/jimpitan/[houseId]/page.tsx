@@ -470,9 +470,14 @@ export default function HouseDetailPage() {
         </div>
       </div>
 
-      {/* Sticky Bottom Bar untuk Pembayaran */}
+      {/* Sticky Bottom Bar untuk Pembayaran (Menempel di dasar layar menggantikan BottomNav) */}
       {selectedPeriodIds.length > 0 && (
-        <div className="fixed bottom-[72px] left-0 right-0 z-30 px-4 py-3 bg-white border-t border-black/8 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 px-4 pt-3.5 bg-white border-t border-black/8 shadow-[0_-6px_25px_rgba(0,0,0,0.09)] animate-in slide-in-from-bottom-4 duration-200"
+          style={{
+            paddingBottom: "max(env(safe-area-inset-bottom, 0px), 14px)",
+          }}
+        >
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-foreground/50">
@@ -485,7 +490,7 @@ export default function HouseDetailPage() {
             <button
               type="button"
               onClick={() => setShowPaymentModal(true)}
-              className="bg-primary text-[#000000] px-6 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+              className="bg-primary text-[#000000] px-6 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform shadow-xs"
             >
               Bayar Sekarang
             </button>
