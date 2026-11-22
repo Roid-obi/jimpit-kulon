@@ -5,47 +5,20 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1. Ambil transaksi keuangan dengan try/catch aman
-    let txDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
-    try {
-      const snap = await adminDb
+    const [txSnapshot, housesSnapshot, periodSnapshot] = await Promise.all([
+      adminDb
         .collection("financial_transactions")
         .orderBy("createdAt", "desc")
-        .get();
-      txDocs = snap.docs;
-    } catch (e) {
-      console.warn("orderBy createdAt error, fallback ke query biasa:", e);
-      try {
-        const snap = await adminDb.collection("financial_transactions").get();
-        txDocs = snap.docs;
-      } catch (err2) {
-        console.error("Gagal membaca financial_transactions:", err2);
-      }
-    }
+        .get(),
+      adminDb.collection("houses").where("isActive", "==", true).get(),
+      adminDb.collection("periods").get(),
+    ]);
 
-    // 2. Ambil data rumah dengan try/catch aman
-    let houseDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
-    try {
-      const snap = await adminDb
-        .collection("houses")
-        .where("isActive", "==", true)
-        .get();
-      houseDocs = snap.docs;
-    } catch (e) {
-      console.warn("Query houses isActive error, fallback ke query biasa:", e);
-      try {
-        const snap = await adminDb.collection("houses").get();
-        houseDocs = snap.docs;
-      } catch (err2) {
-        console.error("Gagal membaca houses:", err2);
-      }
-    }
-
-    // 3. Olah data rumah
+    // Data rumah
     const housesData: any[] = [];
     const housesMap = new Map<string, string>();
 
-    houseDocs.forEach((doc) => {
+    housesSnapshot.docs.forEach((doc) => {
       const d = doc.data();
       const houseItem = {
         id: doc.id,
@@ -57,6 +30,7 @@ export async function GET() {
       housesMap.set(doc.id, d.headOfFamily || d.houseNumber || "Rumah Warga");
     });
 
+    // Urutkan nomor rumah secara alfabetis/numerik
     housesData.sort((a, b) => {
       const numA = parseInt(a.houseNumber, 10);
       const numB = parseInt(b.houseNumber, 10);
@@ -66,12 +40,12 @@ export async function GET() {
       return a.houseNumber.localeCompare(b.houseNumber);
     });
 
-    // 4. Kalkulasi transaksi & saldo
+    // Kalkulasi keuangan
     let totalIncome = 0;
     let totalExpense = 0;
     const rawTx: any[] = [];
 
-    txDocs.forEach((doc) => {
+    txSnapshot.docs.forEach((doc) => {
       const d = doc.data();
       const amt = Number(d.amount) || 0;
       if (d.type === "income") totalIncome += amt;
@@ -150,12 +124,63 @@ export async function GET() {
     groupedData.sort((a, b) => b.createdAtMillis - a.createdAtMillis);
     const recentTransactions = groupedData.slice(0, 5);
 
+    // Periode Berjalan
+    const now = new Date();
+    let currentPeriod: any = null;
+
+    periodSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      if (data.status !== "archived") {
+        const startMillis = data.startDate?._seconds
+          ? data.startDate._seconds * 1000
+          : data.startDate?.toMillis
+            ? data.startDate.toMillis()
+            : 0;
+        const endMillis = data.endDate?._seconds
+          ? data.endDate._seconds * 1000
+          : data.endDate?.toMillis
+            ? data.endDate.toMillis()
+            : 0;
+
+        const start = new Date(startMillis);
+        const end = new Date(endMillis);
+
+        if (start <= now && end >= now) {
+          currentPeriod = {
+            id: doc.id,
+            periodNumber: data.periodNumber,
+            startDateMillis: startMillis,
+            endDateMillis: endMillis,
+            amount: data.amount || 0,
+            status: data.status,
+          };
+        }
+      }
+    });
+
+    let housesLunas = 0;
+    if (currentPeriod) {
+      const paymentsSnap = await adminDb
+        .collection("payments")
+        .where("periodId", "==", currentPeriod.id)
+        .where("status", "==", "paid")
+        .get();
+
+      const uniqueHouses = new Set<string>();
+      paymentsSnap.docs.forEach((d) => {
+        uniqueHouses.add(d.data().houseId);
+      });
+      housesLunas = uniqueHouses.size;
+    }
+
     return NextResponse.json({
       success: true,
       balance: totalIncome - totalExpense,
       totalIncome,
       totalExpense,
       totalHouses: housesData.length,
+      housesLunas,
+      activePeriod: currentPeriod,
       recentTransactions,
       houses: housesData,
     });

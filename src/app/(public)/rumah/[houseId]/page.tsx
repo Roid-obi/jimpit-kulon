@@ -76,7 +76,8 @@ export default function PublicHouseDetailPage() {
 
     let isMounted = true;
 
-    const fetchFromClientSdk = async () => {
+    const fetchHouseData = async () => {
+      setIsLoading(true);
       try {
         const houseSnap = await getDoc(doc(db, "houses", houseId));
         if (!houseSnap.exists()) {
@@ -143,35 +144,9 @@ export default function PublicHouseDetailPage() {
           setPayments(paymentsData);
           setNotFound(false);
         }
-      } catch (clientErr) {
-        console.error("Client SDK fallback error:", clientErr);
-        if (isMounted) setNotFound(true);
-      }
-    };
-
-    const fetchHouseData = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/public/houses/${houseId}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            // Cek sekali lagi via client SDK untuk memastikan bukan 404 palsu karena API error
-            await fetchFromClientSdk();
-            return;
-          }
-          throw new Error("Gagal mengambil data rumah via API");
-        }
-        const data = await res.json();
-        if (isMounted && data.success && data.house) {
-          setHouse(data.house);
-          setPeriods(data.periods || []);
-          setPayments(data.payments || []);
-        } else {
-          await fetchFromClientSdk();
-        }
       } catch (err) {
-        console.warn("API house fetch failed, falling back to Client SDK:", err);
-        await fetchFromClientSdk();
+        console.error("Gagal memuat data rumah dari Firestore:", err);
+        if (isMounted) setNotFound(true);
       } finally {
         if (isMounted) {
           setIsLoading(false);

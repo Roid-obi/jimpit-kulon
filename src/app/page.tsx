@@ -55,13 +55,14 @@ export default function LandingPage() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Fetch data landing page (Dual-fetch: API publik + Client SDK Fallback)
+  // Fetch data landing page langsung dari Firestore Client SDK
   useEffect(() => {
     let isMounted = true;
 
-    // Fallback langsung menggunakan Firebase Client SDK jika API bermasalah atau kosong
-    const fetchFromClientSdk = async () => {
+    const fetchLandingData = async () => {
       try {
+        setIsLoadingFinance(true);
+
         const [txSnap, housesSnap] = await Promise.all([
           getDocs(
             query(
@@ -69,7 +70,7 @@ export default function LandingPage() {
               orderBy("createdAt", "desc"),
             ),
           ).catch(async () => {
-            // Fallback tanpa orderBy jika butuh indeks
+            // Fallback jika belum ada index komposit
             return await getDocs(collection(db, "financial_transactions"));
           }),
           getDocs(
@@ -206,39 +207,8 @@ export default function LandingPage() {
             setHouses(housesData);
           }
         }
-      } catch (clientErr: any) {
-        console.warn(
-          "Client SDK fallback error (aturan Firestore Console mungkin belum di-deploy):",
-          clientErr?.message || clientErr,
-        );
-      }
-    };
-
-    const fetchLandingData = async () => {
-      try {
-        setIsLoadingFinance(true);
-        const res = await fetch("/api/public/landing");
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          console.warn("API landing fetch non-200:", res.status, errData);
-          throw new Error(`HTTP error ${res.status}: ${errData.error || ""}`);
-        }
-        const data = await res.json();
-
-        if (isMounted && data.success) {
-          setBalance(data.balance ?? 0);
-          setTotalIncome(data.totalIncome ?? 0);
-          setTotalExpense(data.totalExpense ?? 0);
-          setRecentTransactions(data.recentTransactions ?? []);
-          setHouses(data.houses ?? []);
-          return;
-        }
-
-        // Jika data kosong atau success false, coba Client SDK
-        await fetchFromClientSdk();
       } catch (err) {
-        console.warn("API landing fetch gagal, beralih ke Client SDK:", err);
-        await fetchFromClientSdk();
+        console.error("Gagal memuat data landing page dari Firestore:", err);
       } finally {
         if (isMounted) {
           setIsLoadingFinance(false);
