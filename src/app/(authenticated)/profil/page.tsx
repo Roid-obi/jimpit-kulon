@@ -147,15 +147,6 @@ export default function ProfilPage() {
               {userData.isActive ? "Aktif" : "Nonaktif"}
             </span>
           </div>
-          <div className="bg-white rounded-2xl px-4 py-3.5 border border-black/8 shadow-sm flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground/60">
-              Status Akun
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 bg-green-100 text-green-700">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Aktif
-            </span>
-          </div>
         </div>
 
         {/* Message */}
