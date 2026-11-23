@@ -8,42 +8,17 @@ import { useState } from "react";
 import { useForm, type FieldErrors } from "react-hook-form";
 import * as z from "zod";
 import { app } from "@/lib/firebase/client";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signOut,
-  updateProfile,
-} from "firebase/auth";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  KeyRound,
-  ArrowLeft,
-  AlertCircle,
-} from "lucide-react";
+import { getAuth, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Eye, EyeOff, Mail, Lock, User, KeyRound, ArrowLeft, AlertCircle } from "lucide-react";
 
 const registerSchema = z
   .object({
     name: z.string().min(3, { message: "Nama lengkap minimal 3 karakter" }),
-    email: z
-      .string()
-      .email({ message: "Format email tidak valid (contoh: nama@email.com)" }),
+    email: z.string().email({ message: "Format email tidak valid (contoh: nama@email.com)" }),
     password: z.string().min(6, { message: "Password minimal 6 karakter" }),
-    confirmPassword: z
-      .string()
-      .min(1, { message: "Konfirmasi password wajib diisi" }),
-    registrationCode: z
-      .string()
-      .min(1, { message: "Kode registrasi petugas wajib diisi" }),
+    confirmPassword: z.string().min(1, { message: "Konfirmasi password wajib diisi" }),
+    registrationCode: z.string().min(1, { message: "Kode registrasi petugas wajib diisi" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Konfirmasi password tidak cocok dengan password di atas",
@@ -73,12 +48,9 @@ export default function RegisterPage() {
     const errorList: string[] = [];
     if (formErrors.name?.message) errorList.push(formErrors.name.message);
     if (formErrors.email?.message) errorList.push(formErrors.email.message);
-    if (formErrors.password?.message)
-      errorList.push(formErrors.password.message);
-    if (formErrors.confirmPassword?.message)
-      errorList.push(formErrors.confirmPassword.message);
-    if (formErrors.registrationCode?.message)
-      errorList.push(formErrors.registrationCode.message);
+    if (formErrors.password?.message) errorList.push(formErrors.password.message);
+    if (formErrors.confirmPassword?.message) errorList.push(formErrors.confirmPassword.message);
+    if (formErrors.registrationCode?.message) errorList.push(formErrors.registrationCode.message);
 
     if (errorList.length > 0) {
       setError(`Mohon periksa data: ${errorList[0]}`);
@@ -124,17 +96,11 @@ export default function RegisterPage() {
         // Jika server error 500 (Vercel Serverless issue), lakukan client-side fallback
         console.warn("Backend register error 500, fallback ke Client SDK...");
         if (cleanCode !== "JIMPIT-KULON") {
-          throw new Error(
-            `Kode registrasi "${cleanCode}" salah. Silakan hubungi Admin / Pengurus RT untuk meminta kode yang benar.`,
-          );
+          throw new Error(`Kode registrasi "${cleanCode}" salah. Silakan hubungi Admin untuk meminta kode yang benar.`);
         }
 
         const auth = getAuth(app);
-        const userCred = await createUserWithEmailAndPassword(
-          auth,
-          cleanEmail,
-          data.password,
-        );
+        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, data.password);
 
         await updateProfile(userCred.user, {
           displayName: cleanName,
@@ -164,18 +130,12 @@ export default function RegisterPage() {
       }
 
       // Jika fetch network error sama sekali
-      throw new Error(
-        "Koneksi ke server pendaftaran terganggu. Silakan periksa jaringan Anda.",
-      );
+      throw new Error("Koneksi ke server pendaftaran terganggu. Silakan periksa jaringan Anda.");
     } catch (err: any) {
       console.error("Register error:", err);
       let msg = "Terjadi kesalahan saat pendaftaran akun.";
-      if (
-        err?.code === "auth/email-already-in-use" ||
-        err?.message?.includes("already-exists")
-      ) {
-        msg =
-          "Email ini sudah terdaftar sebagai pengguna. Silakan langsung masuk ke menu Login.";
+      if (err?.code === "auth/email-already-in-use" || err?.message?.includes("already-exists")) {
+        msg = "Email ini sudah terdaftar sebagai pengguna. Silakan langsung masuk ke menu Login.";
       } else if (err?.code === "auth/weak-password") {
         msg = "Password terlalu lemah. Masukkan minimal 6 karakter kombinasi.";
       } else if (err?.code === "auth/invalid-email") {
@@ -193,10 +153,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center px-5 py-10 relative">
       {/* Tombol Kembali ke Landing Page */}
-      <div
-        className="absolute top-0 left-0 p-4 sm:p-6 z-20"
-        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}
-      >
+      <div className="absolute top-0 left-0 p-4 sm:p-6 z-20" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}>
         <Link
           href="/"
           className="w-10 h-10 rounded-2xl bg-white border border-black/8 shadow-sm flex items-center justify-center text-foreground hover:bg-black/[0.02] active:scale-95 transition-all"
@@ -208,21 +165,9 @@ export default function RegisterPage() {
 
       {/* Logo */}
       <div className="text-center mb-8">
-        <Image
-          src="/jimpit-kulon-logo.png"
-          alt="Jimpit Kulon"
-          width={160}
-          height={64}
-          style={{ width: "auto", height: "auto" }}
-          className="object-contain mx-auto mb-3 h-10 sm:h-12 w-auto"
-          priority
-        />
-        <h2 className="text-lg font-bold text-foreground">
-          Daftar Akun Petugas
-        </h2>
-        <p className="text-xs text-foreground/50 mt-0.5">
-          Khusus Pemuda-Pemudi Tunas Manunggal Dusun Ngowan RT 1 RW 2
-        </p>
+        <Image src="/jimpit-kulon-logo.png" alt="Jimpit Kulon" width={160} height={64} style={{ width: "auto", height: "auto" }} className="object-contain mx-auto mb-3 h-10 sm:h-12 w-auto" priority />
+        <h2 className="text-lg font-bold text-foreground">Daftar Akun Petugas</h2>
+        <p className="text-xs text-foreground/50 mt-0.5">Khusus Pemuda-Pemudi Tunas Manunggal Dusun Ngowan RT 1 RW 2</p>
       </div>
 
       {/* Card Form */}
@@ -238,16 +183,10 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit(onSubmit, onInvalid)}
-          noValidate
-          className="space-y-4"
-        >
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">
-              Nama Lengkap
-            </label>
+            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
             <div className="relative">
               <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -268,9 +207,7 @@ export default function RegisterPage() {
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">
-              Email
-            </label>
+            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">Email</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -291,9 +228,7 @@ export default function RegisterPage() {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
+            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">Password</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -303,16 +238,8 @@ export default function RegisterPage() {
                 placeholder="Minimal 6 karakter"
                 autoComplete="new-password"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.password && (
@@ -325,9 +252,7 @@ export default function RegisterPage() {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">
-              Konfirmasi Password
-            </label>
+            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">Konfirmasi Password</label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
               <input
@@ -337,16 +262,8 @@ export default function RegisterPage() {
                 placeholder="Ulangi password di atas"
                 autoComplete="new-password"
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60">
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.confirmPassword && (
@@ -359,17 +276,13 @@ export default function RegisterPage() {
 
           {/* Registration Code */}
           <div className="pt-1">
-            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">
-              Kode Registrasi Petugas
-            </label>
+            <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1.5">Kode Registrasi Petugas</label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600" />
               <input
                 {...register("registrationCode")}
                 type="text"
-                onChange={(e) =>
-                  setValue("registrationCode", e.target.value.toUpperCase())
-                }
+                onChange={(e) => setValue("registrationCode", e.target.value.toUpperCase())}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-amber-300/80 bg-amber-50/40 font-mono font-bold tracking-wider uppercase focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm text-foreground"
                 placeholder="Masukkan kode registrasi"
                 autoCapitalize="characters"
@@ -404,10 +317,7 @@ export default function RegisterPage() {
         <div className="mt-6 pt-5 border-t border-black/5 text-center">
           <p className="text-sm text-foreground/50">
             Sudah punya akun?{" "}
-            <Link
-              href="/login"
-              className="text-secondary font-bold hover:underline"
-            >
+            <Link href="/login" className="text-secondary font-bold hover:underline">
               Masuk
             </Link>
           </p>
