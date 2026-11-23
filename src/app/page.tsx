@@ -489,7 +489,7 @@ export default function LandingPage() {
                   onFocus={() => {
                     if (searchQuery.trim()) setShowSearchResults(true);
                   }}
-                  placeholder="Nama kepala keluarga / no. rumah..."
+                  placeholder="Nama kepala keluarga..."
                   className="w-full pl-10 pr-10 py-3.5 rounded-xl border border-black/10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
                 />
                 {searchQuery && (
