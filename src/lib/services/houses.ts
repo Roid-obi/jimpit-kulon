@@ -20,12 +20,18 @@ export async function getHouses(): Promise<House[]> {
   const q = query(housesCol, orderBy("houseNumber", "asc"));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map(
+  const list = snapshot.docs.map(
     (doc) =>
       ({
         id: doc.id,
         ...doc.data(),
       }) as House,
+  );
+
+  return list.sort((a, b) =>
+    (a.houseNumber || "").localeCompare(b.houseNumber || "", undefined, {
+      numeric: true,
+    }),
   );
 }
 
