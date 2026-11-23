@@ -535,7 +535,9 @@ export default function LandingPage() {
                               </p>
                               <p className="text-xs text-foreground/50">
                                 Rumah {house.houseNumber}
-                                {house.address ? ` • ${house.address}` : ""}
+                                {house.address && house.address !== "-"
+                                  ? ` • ${house.address}`
+                                  : ""}
                               </p>
                             </div>
                             <ChevronRight className="w-4 h-4 text-foreground/25 flex-shrink-0" />
