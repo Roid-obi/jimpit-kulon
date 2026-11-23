@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, TrendingUp } from "lucide-react";
 
@@ -28,6 +29,7 @@ type Income = {
 
 export default function PemasukanPage() {
   const { user, userData } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -90,11 +92,13 @@ export default function PemasukanPage() {
       setAmount("");
       setDescription("");
       setCategory("donation");
-      alert("Pemasukan berhasil disimpan!");
+      showToast("Pemasukan kas berhasil dicatat!", "success");
       fetchIncomes();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Gagal menyimpan pemasukan");
+      const msg =
+        err instanceof Error ? err.message : "Gagal menyimpan pemasukan.";
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }

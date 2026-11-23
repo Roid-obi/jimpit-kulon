@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -103,6 +104,7 @@ interface TransactionFormState {
 
 export default function AdminPage() {
   const { user, userData, logout } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   // Navigation State
@@ -214,6 +216,7 @@ export default function AdminPage() {
     message: string,
     type: "success" | "error" | "info" = "success",
   ) => {
+    showToast(message, type);
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3500);
   };

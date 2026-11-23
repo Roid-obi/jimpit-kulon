@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { app } from "@/lib/firebase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, TrendingDown } from "lucide-react";
 
@@ -28,6 +29,7 @@ type Expense = {
 
 export default function PengeluaranPage() {
   const { user, userData } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -93,11 +95,13 @@ export default function PengeluaranPage() {
       setDescription("");
       setTakenBy("");
       setNote("");
-      alert("Pengeluaran berhasil disimpan!");
+      showToast("Pengeluaran kas berhasil dicatat!", "success");
       fetchExpenses();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Gagal menyimpan pengeluaran");
+      const msg =
+        err instanceof Error ? err.message : "Gagal menyimpan pengeluaran.";
+      showToast(msg, "error");
     } finally {
       setSubmitting(false);
     }

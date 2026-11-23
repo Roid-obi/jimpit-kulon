@@ -15,6 +15,7 @@ import QRCode from "react-qr-code";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import {
   collection,
   doc,
@@ -37,6 +38,7 @@ export default function HouseDetailPage() {
   const router = useRouter();
   const houseId = params.houseId as string;
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [house, setHouse] = useState<House | null>(null);
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -222,11 +224,12 @@ export default function HouseDetailPage() {
       );
       setSelectedPeriodIds([]);
       setShowPaymentModal(false);
+      showToast("Pembayaran jimpitan berhasil dicatat!", "success");
     } catch (err: unknown) {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Gagal mencatat pembayaran";
-      alert(msg);
+      showToast(msg, "error");
     } finally {
       setIsPaying(false);
     }
@@ -249,11 +252,12 @@ export default function HouseDetailPage() {
         updatedSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Payment),
       );
       setShowCancelModal({ show: false, payment: null, period: null });
+      showToast("Pembayaran jimpitan berhasil dibatalkan.", "info");
     } catch (err: unknown) {
       console.error(err);
       const msg =
         err instanceof Error ? err.message : "Gagal membatalkan pembayaran";
-      alert(msg);
+      showToast(msg, "error");
     } finally {
       setIsCancelling(false);
     }

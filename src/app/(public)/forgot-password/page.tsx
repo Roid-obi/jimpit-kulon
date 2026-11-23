@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
+import { useToast } from "@/contexts/ToastContext";
 import { Mail, KeyRound, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export default function ForgotPasswordPage() {
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
   const {
     register,
@@ -36,16 +38,18 @@ export default function ForgotPasswordPage() {
       const auth = getAuth(app);
       await sendPasswordResetEmail(auth, data.email);
       setIsSent(true);
+      showToast("Email petunjuk reset password telah dikirim!", "success");
     } catch (err: unknown) {
+      let errMsg = "Terjadi kesalahan saat mengirim email reset.";
       if (
         err instanceof Error &&
         "code" in err &&
         err.code === "auth/user-not-found"
       ) {
-        setError("Akun tidak ditemukan.");
-      } else {
-        setError("Terjadi kesalahan saat mengirim email reset.");
+        errMsg = "Akun tidak ditemukan.";
       }
+      setError(errMsg);
+      showToast(errMsg, "error");
     } finally {
       setIsLoading(false);
     }

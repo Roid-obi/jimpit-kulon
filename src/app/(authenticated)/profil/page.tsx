@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { useRouter } from "next/navigation";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { app } from "@/lib/firebase/client";
@@ -17,6 +18,7 @@ import { useState } from "react";
 
 export default function ProfilPage() {
   const { user, userData, logout } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
@@ -31,12 +33,15 @@ export default function ProfilPage() {
     try {
       const auth = getAuth(app);
       await sendPasswordResetEmail(auth, user.email);
+      showToast("Email reset password telah dikirim!", "success");
       setMessage({
         type: "success",
         text: "Email reset password telah dikirim!",
       });
     } catch (error: any) {
       console.error(error);
+      const msg = error?.message || "Gagal mengirim email reset password.";
+      showToast(msg, "error");
       setMessage({
         type: "error",
         text: "Gagal mengirim email reset password.",

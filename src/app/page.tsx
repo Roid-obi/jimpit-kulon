@@ -61,6 +61,31 @@ export default function LandingPage() {
       try {
         setIsLoadingFinance(true);
 
+        // 1. Coba ambil data dari API serverless publik terlebih dahulu
+        try {
+          const res = await fetch("/api/public/landing");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && isMounted) {
+              setBalance(data.balance ?? 0);
+              if (Array.isArray(data.recentTransactions)) {
+                setRecentTransactions(data.recentTransactions);
+              }
+              if (Array.isArray(data.houses) && data.houses.length > 0) {
+                setHouses(data.houses);
+              }
+              setIsLoadingFinance(false);
+              return;
+            }
+          }
+        } catch (apiErr) {
+          console.warn(
+            "API landing fetch failed, fallback ke Client SDK:",
+            apiErr,
+          );
+        }
+
+        // 2. Fallback: Langsung dari Firestore Client SDK
         const [txSnap, housesSnap] = await Promise.all([
           getDocs(
             query(
@@ -436,8 +461,8 @@ export default function LandingPage() {
         </div>
 
         {/* ===== CARI / SCAN RUMAH ===== */}
-        <div className="bg-white rounded-2xl border border-black/8 shadow-sm overflow-hidden">
-          <div className="px-4 py-3.5 border-b border-black/8 bg-black/[0.015]">
+        <div className="bg-white rounded-2xl border border-black/8 shadow-sm">
+          <div className="px-4 py-3.5 border-b border-black/8 bg-black/[0.015] rounded-t-2xl">
             <h3 className="font-semibold text-sm text-foreground">
               Cek Jimpitan Rumah Anda
             </h3>
@@ -479,55 +504,44 @@ export default function LandingPage() {
             </div>
 
             {/* Search input */}
-            <div ref={searchRef} className="relative">
+            <div ref={searchRef} className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => {
-                    if (searchQuery.trim()) setShowSearchResults(true);
-                  }}
-                  placeholder="Nama kepala keluarga..."
+                  placeholder="Ketik nama warga (misal: Tardi, Yateno)..."
                   className="w-full pl-10 pr-10 py-3.5 rounded-xl border border-black/10 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
                 />
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setShowSearchResults(false);
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-black/10 text-foreground/50"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-black/10 text-foreground/50 hover:bg-black/20 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
 
-              {/* Search results dropdown */}
-              {showSearchResults && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl border border-black/10 shadow-lg z-30 overflow-hidden max-h-72 overflow-y-auto">
+              {/* Search results inline (anti-clipping & mobile friendly) */}
+              {searchQuery.trim() !== "" && (
+                <div className="bg-slate-50/80 rounded-2xl border border-black/8 overflow-hidden max-h-72 overflow-y-auto shadow-inner">
                   {filteredHouses.length > 0 ? (
-                    <ul>
-                      {filteredHouses.map((house, i) => (
+                    <ul className="divide-y divide-black/5">
+                      {filteredHouses.map((house) => (
                         <li key={house.id}>
                           <button
                             type="button"
                             onClick={() => {
-                              setShowSearchResults(false);
                               setSearchQuery("");
                               router.push(`/rumah/${house.id}`);
                             }}
-                            className={`w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-black/[0.03] active:bg-black/[0.06] transition-colors ${
-                              i < filteredHouses.length - 1
-                                ? "border-b border-black/5"
-                                : ""
-                            }`}
+                            className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-black/[0.04] active:bg-black/[0.08] transition-colors"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
-                              <Home className="w-4 h-4 text-secondary" />
+                            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 font-bold text-xs text-secondary">
+                              {house.houseNumber}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold text-sm text-foreground truncate">
@@ -546,15 +560,15 @@ export default function LandingPage() {
                       ))}
                     </ul>
                   ) : (
-                    <div className="py-8 text-center">
+                    <div className="py-8 text-center px-4">
                       <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-2">
                         <Search className="w-5 h-5 text-foreground/30" />
                       </div>
-                      <p className="text-sm text-foreground/40">
-                        Rumah tidak ditemukan
+                      <p className="text-sm text-foreground/60 font-semibold">
+                        Rumah "{searchQuery}" tidak ditemukan
                       </p>
-                      <p className="text-xs text-foreground/30 mt-0.5">
-                        Coba nama lain atau nomor rumah
+                      <p className="text-xs text-foreground/40 mt-0.5">
+                        Coba ketik nama lain (misal: Tardi, Yateno, Teguh) atau nomor rumah
                       </p>
                     </div>
                   )}

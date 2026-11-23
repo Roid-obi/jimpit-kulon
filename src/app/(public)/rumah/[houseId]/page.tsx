@@ -79,6 +79,29 @@ export default function PublicHouseDetailPage() {
     const fetchHouseData = async () => {
       setIsLoading(true);
       try {
+        // 1. Coba ambil lewat endpoint API backend (Firebase Admin SDK)
+        try {
+          const res = await fetch(`/api/public/houses/${houseId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && isMounted) {
+              setHouse(data.house);
+              setPeriods(data.periods || []);
+              setPayments(data.payments || []);
+              setNotFound(false);
+              setIsLoading(false);
+              return;
+            } else if (res.status === 404) {
+              if (isMounted) setNotFound(true);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (apiErr) {
+          console.warn("API houses fetch error, fallback ke Firestore Client:", apiErr);
+        }
+
+        // 2. Fallback ke Firestore Client SDK jika API offline/gagal
         const houseSnap = await getDoc(doc(db, "houses", houseId));
         if (!houseSnap.exists()) {
           if (isMounted) setNotFound(true);
@@ -222,8 +245,9 @@ export default function PublicHouseDetailPage() {
         className="relative bg-secondary overflow-hidden"
         style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 20px)" }}
       >
-        <div className="absolute -top-10 -right-10 w-44 h-44 bg-white/8 rounded-full pointer-events-none" />
-        <div className="absolute top-10 -left-8 w-32 h-32 bg-white/5 rounded-full pointer-events-none" />
+        {/* Decorative blobs — diposisikan agar lengkungan lingkaran utuh dan tidak terpotong tepi bawah */}
+        <div className="absolute -top-16 -right-10 w-36 h-36 bg-white/8 rounded-full pointer-events-none" />
+        <div className="absolute -top-6 -left-10 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
 
         {/* Top bar */}
         <div className="relative z-10 flex items-center gap-3 px-5 pb-5">
@@ -256,7 +280,9 @@ export default function PublicHouseDetailPage() {
               </h1>
               <p className="text-[#f7f7f7]/60 text-sm mt-0.5">
                 Rumah {house.houseNumber}
-                {house.address ? ` • ${house.address}` : ""}
+                {house.address && house.address !== "-"
+                  ? ` • ${house.address}`
+                  : ""}
               </p>
             </div>
           </div>
