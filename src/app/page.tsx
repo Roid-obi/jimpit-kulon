@@ -603,17 +603,22 @@ export default function LandingPage() {
           {/* Card WhatsApp Admin */}
           <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 p-4 sm:p-5 shadow-xs">
             <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+              <div className="w-11 h-11 rounded-2xl bg-[#25D366] flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
                 <svg
-                  className="w-6 h-6 fill-current"
+                  className="w-7 h-7"
                   viewBox="0 0 24 24"
+                  fill="none"
                   aria-hidden="true"
                 >
-                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.698.074-1.136-.067-.34-.11-.798-.261-1.371-.508-2.416-1.041-3.998-3.524-4.12-3.684-.12-.159-.976-1.299-.976-2.478s.614-1.758.833-1.996c.22-.24.479-.299.638-.299.16 0 .319.003.458.01.147.008.344-.056.538.411.2.48.678 1.657.738 1.777.06.12.1.26.02.42-.08.159-.12.259-.24.399-.12.14-.25.312-.358.419-.12.12-.245.25-.105.49.14.24.623 1.026 1.336 1.662.918.818 1.693 1.071 1.933 1.191.24.12.38.1.52-.06.14-.16.598-.698.758-.938.16-.24.32-.2.539-.12.22.08 1.396.658 1.636.778.24.12.4.18.46.28.06.1.06.58-.084.985z" />
+                  {/* Balon chat putih solid */}
                   <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.05 21.65a.75.75 0 0 0 .918.918l4.482-1.388A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm-8.5 10c0-4.687 3.813-8.5 8.5-8.5s8.5 3.813 8.5 8.5-3.813 8.5-8.5 8.5a8.46 8.46 0 0 1-4.492-1.284.75.75 0 0 0-.547-.091l-3.322 1.028 1.028-3.322a.75.75 0 0 0-.091-.547A8.46 8.46 0 0 1 3.5 12z"
+                    fill="#ffffff"
+                    d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.04 14.69 2 12.04 2Z"
+                  />
+                  {/* Gagang telepon hijau khas WhatsApp */}
+                  <path
+                    fill="#25D366"
+                    d="M17.47 14.38C17.17 14.23 15.69 13.5 15.41 13.4C15.14 13.3 14.94 13.25 14.74 13.55C14.54 13.85 13.96 14.53 13.78 14.73C13.61 14.93 13.43 14.95 13.13 14.8C12.83 14.65 11.86 14.34 10.71 13.31C9.82 12.52 9.22 11.53 9.04 11.23C8.87 10.93 9.02 10.77 9.17 10.62C9.31 10.48 9.47 10.27 9.62 10.09C9.77 9.91 9.82 9.79 9.92 9.59C10.02 9.39 9.97 9.21 9.89 9.06C9.82 8.91 9.22 7.43 8.97 6.83C8.73 6.24 8.48 6.32 8.3 6.31C8.12 6.3 7.92 6.3 7.72 6.3C7.52 6.3 7.2 6.38 6.92 6.68C6.64 6.98 5.87 7.7 5.87 9.18C5.87 10.66 6.95 12.09 7.1 12.29C7.25 12.49 9.22 15.53 12.24 16.83C12.96 17.14 13.52 17.33 13.96 17.47C14.68 17.7 15.34 17.67 15.86 17.59C16.44 17.5 17.64 16.86 17.89 16.16C18.14 15.46 18.14 14.86 18.06 14.73C17.99 14.6 17.77 14.53 17.47 14.38Z"
                   />
                 </svg>
               </div>
@@ -630,7 +635,7 @@ export default function LandingPage() {
                     href="https://api.whatsapp.com/send?phone=62859131332583&text=Halo%20Mas%20Admin%20%F0%9F%91%8B"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs transition-all shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-semibold text-xs transition-all shadow-sm"
                   >
                     <span>Hubungi via WhatsApp</span>
                     <ArrowRight className="w-3.5 h-3.5" />
