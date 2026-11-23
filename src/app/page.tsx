@@ -575,14 +575,15 @@ export default function LandingPage() {
                 Pemuda Tunas Manunggal
               </p>
               <p className="text-xs text-foreground/55 mt-0.5 leading-relaxed">
-                Jimpitan dikelola oleh Pemuda-Pemudi Tunas Manunggal Ngowan RT 1
-                RW 2 untuk mendanai event dan kegiatan dusun.
+                Jimpitan dikelola secara transparan dan mandiri oleh
+                Pemuda-Pemudi Tunas Manunggal Ngowan RT 1 RW 2 untuk mendanai
+                kegiatan, sosial, dan event dusun.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Link Pendaftaran Petugas */}
+        {/* Link Pendaftaran Petugas Dusun */}
         <div className="text-center py-1">
           <p className="text-xs text-foreground/50">
             Petugas baru dusun?{" "}
@@ -596,12 +597,133 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="pb-8 text-center px-4">
-        <p className="text-xs text-foreground/35">
-          Jimpit Kulon &copy; {new Date().getFullYear()} &bull; Dusun Ngowan RT 1
-          RW 2
-        </p>
+      {/* ===== FOOTER ===== */}
+      <footer className="mt-auto bg-white border-t border-black/8 pt-8 pb-10 px-4 sm:px-6">
+        <div className="max-w-lg mx-auto space-y-6">
+          {/* Card WhatsApp Admin */}
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 p-4 sm:p-5 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                <svg
+                  className="w-6 h-6 fill-current"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.698.074-1.136-.067-.34-.11-.798-.261-1.371-.508-2.416-1.041-3.998-3.524-4.12-3.684-.12-.159-.976-1.299-.976-2.478s.614-1.758.833-1.996c.22-.24.479-.299.638-.299.16 0 .319.003.458.01.147.008.344-.056.538.411.2.48.678 1.657.738 1.777.06.12.1.26.02.42-.08.159-.12.259-.24.399-.12.14-.25.312-.358.419-.12.12-.245.25-.105.49.14.24.623 1.026 1.336 1.662.918.818 1.693 1.071 1.933 1.191.24.12.38.1.52-.06.14-.16.598-.698.758-.938.16-.24.32-.2.539-.12.22.08 1.396.658 1.636.778.24.12.4.18.46.28.06.1.06.58-.084.985z" />
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.05 21.65a.75.75 0 0 0 .918.918l4.482-1.388A9.957 9.957 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm-8.5 10c0-4.687 3.813-8.5 8.5-8.5s8.5 3.813 8.5 8.5-3.813 8.5-8.5 8.5a8.46 8.46 0 0 1-4.492-1.284.75.75 0 0 0-.547-.091l-3.322 1.028 1.028-3.322a.75.75 0 0 0-.091-.547A8.46 8.46 0 0 1 3.5 12z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-sm text-foreground">
+                  Kontak WhatsApp Admin
+                </h4>
+                <p className="text-xs text-foreground/60 mt-0.5 leading-relaxed">
+                  Ada kendala, pertanyaan seputar jimpitan, atau konfirmasi
+                  setoran? Hubungi pengurus langsung.
+                </p>
+                <div className="mt-3">
+                  <a
+                    href="https://api.whatsapp.com/send?phone=62859131332583&text=Halo%20Mas%20Admin%20%F0%9F%91%8B"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs transition-all shadow-sm"
+                  >
+                    <span>Hubungi via WhatsApp</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Media Links */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-foreground/45 mb-2.5">
+              Media Sosial & Dokumentasi
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Instagram */}
+              <a
+                href="https://www.instagram.com/tunas.manunggal01/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] hover:bg-black/[0.05] border border-black/8 transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <svg
+                    className="w-5 h-5 fill-none stroke-current"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs text-foreground group-hover:text-secondary transition-colors">
+                    Instagram
+                  </p>
+                  <p className="text-[11px] text-foreground/50 truncate">
+                    @tunas.manunggal01
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+
+              {/* TikTok */}
+              <a
+                href="https://www.tiktok.com/@kartar_tunasmanunggal_01"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] hover:bg-black/[0.05] border border-black/8 transition-all group active:scale-[0.98]"
+              >
+                <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <svg
+                    className="w-5 h-5 fill-current"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743 2.9 2.9 0 0 1 2.313-4.643c.307 0 .603.048.881.137V9.404a6.29 6.29 0 0 0-.881-.063A6.34 6.34 0 0 0 3.14 15.68a6.34 6.34 0 0 0 6.346 6.34 6.34 6.34 0 0 0 6.34-6.34V8.58a8.18 8.18 0 0 0 4.787 1.543V6.686h-.024z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-xs text-foreground group-hover:text-secondary transition-colors">
+                    TikTok
+                  </p>
+                  <p className="text-[11px] text-foreground/50 truncate">
+                    @kartar_tunasmanunggal_01
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-black/8 w-full" />
+
+          {/* Copyright & Dusun Identity */}
+          <div className="text-center space-y-1">
+            <p className="font-bold text-xs text-secondary tracking-wide">
+              Jimpit Kulon &bull; Dusun Ngowan RT 1 RW 2
+            </p>
+            <p className="text-[11px] text-foreground/45">
+              Dikelola oleh Pemuda-Pemudi Tunas Manunggal
+            </p>
+            <p className="text-[10px] text-foreground/35 pt-1">
+              &copy; {new Date().getFullYear()} Jimpit Kulon. Guyub Rukun
+              Membangun Dusun.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );
